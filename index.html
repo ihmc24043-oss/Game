@@ -1,41 +1,44 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校长模拟器：传奇建设者</title>
+    <title>校长模拟器：大成至圣版</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 10px; margin: 0; color: #333; }
-        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; position: sticky; top: 0; z-index: 100; background: #f0f2f5; padding-bottom: 5px;}
-        .card { background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; border-top: 3px solid #3498db; }
-        .card h3 { margin: 0; font-size: 10px; color: #7f8c8d; }
-        .card p { margin: 4px 0 0; font-size: 13px; font-weight: bold; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 10px; margin: 0; color: #333; transition: 0.5s; }
+        .danger-bg { background: #f8d7da !important; }
         
-        .section-title { font-size: 15px; font-weight: bold; margin: 15px 0 8px; color: #2c3e50; border-left: 4px solid #e67e22; padding-left: 8px; display: flex; justify-content: space-between; }
-        
-        /* 教室升级网格 */
-        .room-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .room-card { background: white; padding: 10px; border-radius: 10px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; }
-        .room-card h4 { margin: 0; font-size: 13px; color: #2c3e50; }
-        .room-card p { font-size: 9px; color: #7f8c8d; margin: 4px 0; }
-        .lv-tag { color: #e67e22; font-weight: bold; }
+        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; position: sticky; top: 0; z-index: 100; background: #f0f2f5; padding: 5px 0; }
+        .card { background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; border-bottom: 3px solid #3498db; }
+        .card h3 { margin: 0; font-size: 9px; color: #7f8c8d; text-transform: uppercase; }
+        .card p { margin: 4px 0 0; font-size: 12px; font-weight: bold; }
 
-        /* 技能树 */
-        .skill-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-        .s-card { background: #fff; border: 1px solid #3498db; padding: 6px; border-radius: 6px; text-align: center; }
-        .s-card h4 { margin: 0; font-size: 10px; }
+        .btn-next { background: #2c3e50; width: 100%; padding: 18px; font-size: 20px; font-weight: bold; color: #f1c40f; border: none; border-radius: 12px; margin: 10px 0; box-shadow: 0 5px 0 #1a252f; cursor: pointer; }
+        .btn-next:active { transform: translateY(3px); box-shadow: 0 2px 0 #1a252f; }
 
-        .teacher-market { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; }
-        .t-card { min-width: 120px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); }
+        .section-title { font-size: 14px; font-weight: bold; margin: 15px 0 5px; color: #2c3e50; border-left: 4px solid #e67e22; padding-left: 8px; display: flex; justify-content: space-between; }
         
-        button { border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:active { transform: scale(0.95); }
-        .btn-upgrade { background: #3498db; width: 100%; padding: 6px; font-size: 10px; margin-top: 5px; }
-        .btn-skill { background: #9b59b6; width: 100%; padding: 4px; font-size: 9px; margin-top: 4px; }
-        .btn-next { background: #2c3e50; width: 100%; padding: 15px; font-size: 18px; color: #f1c40f; border-radius: 12px; margin: 10px 0; box-shadow: 0 4px #1a252f; }
-        
-        #log { background: #2c3e50; color: #ecf0f1; padding: 10px; height: 120px; overflow-y: auto; border-radius: 8px; font-size: 11px; margin-top: 10px; line-height: 1.4; }
-        .highlight { color: #f1c40f; font-weight: bold; }
+        /* 滚动区域：教室与人才 */
+        .scroll-box { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
+        .item-card { min-width: 140px; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0; }
+        .item-card h4 { margin: 0; font-size: 13px; }
+        .item-card p { font-size: 10px; color: #666; margin: 5px 0; }
+
+        /* 技能与奢侈品 */
+        .grid-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .mini-card { background: white; padding: 8px; border-radius: 6px; border: 1px solid #bdc3c7; text-align: center; }
+        .mini-card h5 { margin: 0; font-size: 10px; }
+
+        button { border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: bold; }
+        .btn-action { width: 100%; padding: 6px; font-size: 10px; margin-top: 5px; }
+        .btn-buy { background: #27ae60; }
+        .btn-skill { background: #9b59b6; }
+        .btn-luxury { background: #d4af37; }
+
+        #log { background: #2c3e50; color: #ecf0f1; padding: 10px; height: 120px; overflow-y: auto; border-radius: 8px; font-size: 11px; margin-top: 10px; line-height: 1.5; }
+        .log-gold { color: #f1c40f; font-weight: bold; }
+        .log-red { color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -43,29 +46,36 @@
         <div class="card"><h3>💰 资金</h3><p id="money">¥10000</p></div>
         <div class="card"><h3>🤯 压力</h3><p id="pressure">0%</p></div>
         <div class="card"><h3>⭐ 声望</h3><p id="reputation">50</p></div>
-        <div class="card"><h3>🎓 毕业生</h3><p id="gradCount">0</p></div>
         <div class="card"><h3>👨‍🎓 学生</h3><p id="studentCount">10/30</p></div>
-        <div class="card"><h3>📅 学期</h3><p id="roundCount">1</p></div>
+        <div class="card"><h3>🎓 毕业生</h3><p id="gradCount">0</p></div>
+        <div class="card"><h3>⚠️ 风险</h3><p id="risk">0%</p></div>
     </div>
 
-    <button class="btn-next" onclick="nextRound()">🔔 结束学期 / 开启毕业礼</button>
+    <button class="btn-next" onclick="nextRound()">🔔 结束学期 / 开启毕业季</button>
 
-    <div class="section-title">🎓 校长个人技能 (永久加成)</div>
-    <div class="skill-grid">
-        <div class="s-card"><h4>口才大师</h4><button class="btn-skill" id="sk-speech" onclick="learnSkill('speech', 5000)">¥5k 学习</button></div>
-        <div class="s-card"><h4>厚脸皮</h4><button class="btn-skill" id="sk-shield" onclick="learnSkill('shield', 8000)">¥8k 学习</button></div>
-        <div class="s-card"><h4>伯乐之眼</h4><button class="btn-skill" id="sk-eye" onclick="learnSkill('eye', 6000)">¥6k 学习</button></div>
+    <div class="section-title">🏫 校园建设 (Room Upgrades)</div>
+    <div class="scroll-box" id="roomGrid"></div>
+
+    <div class="section-title">👨‍🏫 人才市场 (Teachers)</div>
+    <div class="scroll-box" id="teacherMarket"></div>
+
+    <div class="section-title">🌟 校长技能</div>
+    <div class="grid-box">
+        <div class="mini-card"><h5>口才大师</h5><button class="btn-action btn-skill" id="sk-speech" onclick="learnSkill('speech', 5000)">¥5k</button></div>
+        <div class="mini-card"><h5>厚脸皮</h5><button class="btn-action btn-skill" id="sk-shield" onclick="learnSkill('shield', 8000)">¥8k</button></div>
+        <div class="mini-card"><h5>伯乐之眼</h5><button class="btn-action btn-skill" id="sk-eye" onclick="learnSkill('eye', 6000)">¥6k</button></div>
     </div>
 
-    <div class="section-title">🏫 校园设施建设 (可升级)</div>
-    <div class="room-grid" id="roomGrid"></div>
+    <div class="section-title">💎 校长奢侈品 (Only for Happy)</div>
+    <div class="grid-box">
+        <div class="mini-card"><h5>纯金校训</h5><button class="btn-action btn-luxury" id="lux-1" onclick="buyLuxury(1, 50000)">¥50k</button></div>
+        <div class="mini-card"><h5>停机坪</h5><button class="btn-action btn-luxury" id="lux-2" onclick="buyLuxury(2, 200000)">¥200k</button></div>
+        <div class="mini-card"><h5>私人泳池</h5><button class="btn-action btn-luxury" id="lux-3" onclick="buyLuxury(3, 100000)">¥100k</button></div>
+    </div>
 
-    <div class="section-title">👨‍🏫 人才市场 <span style="font-size:10px; color:#999;">每轮自动刷新</span></div>
-    <div id="teacherMarket" class="teacher-market"></div>
-
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;">
-        <button onclick="askParentsForMoney()" style="background:#c0392b; padding:12px;">强制赞助费</button>
-        <button onclick="organizeTour()" style="background:#f39c12; padding:12px;">组织豪华游学</button>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:12px;">
+        <button onclick="askParentsForMoney()" style="background:#c0392b; padding:12px; border-radius:6px;">收取赞助费</button>
+        <button onclick="organizeTour()" style="background:#f39c12; padding:12px; border-radius:6px;">豪华游学团</button>
     </div>
 
     <div id="log"></div>

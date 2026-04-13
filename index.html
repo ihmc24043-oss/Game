@@ -531,39 +531,112 @@ nextRound = function() {
         }
     }, 500);
 })();
-/* --- 强制找回消失的按钮与模式补丁 --- */
-(function() {
-    // 1. 强制生成控制台容器 (如果它消失了)
-    let controls = document.querySelector('.controls');
-    if (!controls) {
-        controls = document.createElement('div');
-        controls.className = 'controls';
-        document.body.appendChild(controls);
-    }
+/* --- 模式系统：全自动恢复与重做补丁 --- */
 
-    // 2. 强制找回模式按钮 (佛系、标准、应试)
-    let modeToggles = document.querySelector('.mode-toggles');
-    if (!modeToggles) {
-        modeToggles = document.createElement('div');
-        modeToggles.className = 'mode-toggles';
-        modeToggles.style.cssText = "display:flex; gap:10px; margin-bottom:10px; justify-content:center;";
+(function rebootModeSystem() {
+    // 1. 强行在页面底部注入 HTML 结构 (防止你删掉了相关的 div)
+    const injectHTML = () => {
+        // 如果页面没有控制栏，直接在 body 最后加一个
+        let controls = document.querySelector('.controls');
+        if (!controls) {
+            controls = document.createElement('div');
+            controls.className = 'controls';
+            document.body.appendChild(controls);
+        }
+
+        // 强行清理并重做模式按钮组
+        let modeToggles = document.querySelector('.mode-toggles');
+        if (!modeToggles) {
+            modeToggles = document.createElement('div');
+            modeToggles.className = 'mode-toggles';
+            // 插入到“结束本学期”按钮之前
+            const nextBtn = controls.querySelector('.btn-next');
+            if (nextBtn) controls.insertBefore(modeToggles, nextBtn);
+            else controls.appendChild(modeToggles);
+        }
+
+        // 写入按钮内容
         modeToggles.innerHTML = `
-            <button class="btn-mode active" onclick="setMode(1)">佛系教育</button>
-            <button class="btn-mode" onclick="setMode(2)">标准模式</button>
-            <button class="btn-mode" onclick="setMode(3)">应试魔鬼</button>
+            <button class="btn-mode ${state.mode === 1 ? 'active' : ''}" onclick="setMode(1)">佛系教育</button>
+            <button class="btn-mode ${state.mode === 2 ? 'active' : ''}" onclick="setMode(2)">标准模式</button>
+            <button class="btn-mode ${state.mode === 3 ? 'active' : ''}" onclick="setMode(3)">应试魔鬼</button>
         `;
-        controls.appendChild(modeToggles);
-    }
+    };
 
-    // 3. 强制找回“结束本学期”按钮
-    let nextBtn = document.querySelector('.btn-next');
-    if (!nextBtn) {
-        nextBtn = document.createElement('button');
-        nextBtn.className = 'btn-next';
-        nextBtn.innerHTML = "🔔 结束本学期 / 进入下一天";
-        nextBtn.onclick = function() { nextRound(); }; // 绑定结算函数
-        controls.appendChild(nextBtn);
+    // 2. 重新定义 setMode 逻辑 (重点：佛系减压)
+    window.setMode = function(m) {
+        state.mode = m;
+        // 刷新 UI 样式
+        document.querySelectorAll('.btn-mode').forEach((btn, i) => {
+            btn.classList.toggle('active', (i + 1) === m);
+        });
+
+        const msgs = [
+            "🍃 已切换为【佛系模式】：压力将每回合大幅自动减少！",
+            "📊 已切换为【标准模式】：稳健发展。",
+            "🔥 已切换为【应试模式】：教学质量暴涨，但压力也会狂飙！"
+        ];
+        addLog(msgs[m-1]);
+    };
+
+    // 3. 拦截并重做结算逻辑 (让佛系模式真正减压)
+    const originalNextRound = nextRound;
+    window.nextRound = function() {
+        // --- 结算前修正 ---
+        if (state.mode === 1) {
+            // 佛系模式：降低一点基础压力增长
+            addLog("🧘 佛系光环生效中...");
+        }
+
+        // 执行原有结算逻辑
+        originalNextRound();
+
+        // --- 结算后修正 (强制减压) ---
+        if (state.mode === 1) {
+            // 佛系模式：每回合额外减 20% 压力，且压力上限锁定在低位
+            state.pressure = Math.max(0, state.pressure - 25);
+            addLog("✨ 佛系效果：学生们在冥想和玩耍中释放了大量压力。");
+        } else if (state.mode === 3) {
+            // 应试模式：额外增加 15% 压力
+            state.pressure = Math.min(100, state.pressure + 15);
+            addLog("💢 应试压力：繁重的课业让学生喘不过气！");
+        }
+
+        updateUI(); // 确保数值立即刷新
+    };
+
+    // 执行注入
+    setTimeout(injectHTML, 500);
+})();
+
+/* --- 强制 CSS 修复 (确保按钮看得见) --- */
+const styleFix = document.createElement('style');
+styleFix.innerHTML = `
+    .mode-toggles { 
+        display: flex !important; 
+        justify-content: center !important; 
+        gap: 8px !important; 
+        margin-bottom: 10px !important; 
+        width: 100%;
     }
+    .btn-mode {
+        background: white !important;
+        border: 1px solid #ccc !important;
+        padding: 8px 15px !important;
+        border-radius: 20px !important;
+        font-size: 12px !important;
+        color: #333 !important;
+        cursor: pointer !important;
+    }
+    .btn-mode.active {
+        background: #3498db !important;
+        color: white !important;
+        border-color: #3498db !important;
+        font-weight: bold !important;
+    }
+`;
+document.head.appendChild(styleFix);
+
 
     // 4. 重写佛系模式逻辑：确保点击就能减压
     window.setMode = function(m) {

@@ -461,6 +461,76 @@ window.doPR = function() {
 
 // 重新初始化一次，确保补丁生效
 renderCampus();
+/* --- 模式系统重做：佛系减压版 --- */
+
+// 1. 强制重写模式切换逻辑
+window.setMode = function(m) {
+    state.mode = m;
+    
+    // 更新按钮视觉效果
+    document.querySelectorAll('.btn-mode').forEach((btn, index) => {
+        btn.classList.toggle('active', index + 1 === m);
+    });
+
+    // 模式切换即时反馈
+    const modes = [
+        { name: "佛系教育", desc: "大幅减缓压力，学生心情愉悦（产出降低）", color: "#27ae60" },
+        { name: "标准模式", desc: "平衡发展，各数值中规中矩", color: "#3498db" },
+        { name: "应试魔鬼", desc: "极限提升教学质量，但学生压力会暴增！", color: "#e74c3c" }
+    ];
+    
+    addLog(`📢 政策调整：<span style="color:${modes[m-1].color}; font-weight:bold;">${modes[m-1].name}</span> - ${modes[m-1].desc}`);
+    updateUI();
+};
+
+// 2. 核心：重写结算逻辑中的压力计算 (补丁挂载)
+// 这里的逻辑会根据 state.mode 动态调整压力
+const originalNextRoundForMode = nextRound;
+nextRound = function() {
+    // 在结算前，根据当前模式设置一个“压力系数”
+    // 佛系(1): 0.3倍压力 | 标准(2): 1.0倍压力 | 应试(3): 2.5倍压力
+    let pressureFactor = 1.0;
+    let studyBonus = 1.0;
+
+    if (state.mode === 1) { 
+        pressureFactor = -15; // 佛系模式每回合直接强力扣除基础压力值
+        studyBonus = 0.6;    // 教学产出变低
+    } else if (state.mode === 3) {
+        pressureFactor = 2.5; // 应试模式压力翻倍
+        studyBonus = 2.0;    // 教学产出翻倍
+    }
+
+    // 调用原有的结算函数
+    originalNextRoundForMode();
+
+    // 结算后修正：如果处于佛系模式，强制再减去一部分压力
+    if (state.mode === 1) {
+        state.pressure = Math.max(0, state.pressure - 20); 
+        addLog("🍃 佛系模式生效：通过组织郊游和缩短课时，学生压力大幅下降。");
+    }
+    
+    updateUI();
+};
+
+// 3. 自动生成/修复模式切换 UI
+(function ensureModeButtons() {
+    setTimeout(() => {
+        let controls = document.querySelector('.controls');
+        if (!controls) return;
+
+        // 如果没有模式按钮组，强行插入
+        if (!document.querySelector('.mode-toggles')) {
+            const toggleHTML = `
+                <div class="mode-toggles" style="display:flex; gap:10px; margin-bottom:10px;">
+                    <button class="btn-mode ${state.mode===1?'active':''}" onclick="setMode(1)" style="border-radius:20px; padding:6px 12px; font-size:12px;">佛系教育</button>
+                    <button class="btn-mode ${state.mode===2?'active':''}" onclick="setMode(2)" style="border-radius:20px; padding:6px 12px; font-size:12px;">标准模式</button>
+                    <button class="btn-mode ${state.mode===3?'active':''}" onclick="setMode(3)" style="border-radius:20px; padding:6px 12px; font-size:12px;">应试魔鬼</button>
+                </div>
+            `;
+            controls.insertAdjacentHTML('afterbegin', toggleHTML);
+        }
+    }, 500);
+})();
 
 </script>
 </body>

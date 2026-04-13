@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>校长模拟器 - Principal Tycoon</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; padding: 20px; }
+        .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; background: #3498db; color: white; transition: 0.3s; }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #bdc3c7; }
+        #log { background: #34495e; color: #ecf0f1; padding: 10px; height: 150px; overflow-y: auto; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🏫 校长模拟器</h1>
+    
+    <div class="dashboard">
+        <div class="card"><h3>资金</h3><p id="money">¥1000</p></div>
+        <div class="card"><h3>学生</h3><p id="studentCount">0 / 20</p></div>
+        <div class="card"><h3>教师</h3><p id="teacherCount">0</p></div>
+        <div class="card"><h3>升学率</h3><p id="promoRate">0%</p></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="buildClassroom()">建新教室 (¥500)</button>
+        <button onclick="hireTeacher()">招聘老师 (¥300)</button>
+    </div>
+
+    <div id="log">
+        <p>系统：欢迎来到你的新学校！请开始建设。</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -2,31 +2,105 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>校长模拟器 - Principal Tycoon</title>
     <style>
-        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; padding: 20px; }
-        .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
-        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; background: #3498db; color: white; transition: 0.3s; }
-        button:hover { background: #2980b9; }
-        button:disabled { background: #bdc3c7; }
-        #log { background: #34495e; color: #ecf0f1; padding: 10px; height: 150px; overflow-y: auto; border-radius: 5px; }
+        body { 
+            font-family: 'Microsoft YaHei', -apple-system, sans-serif; 
+            background: #f0f2f5; 
+            padding: 15px; 
+            margin: 0;
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #2c3e50;
+            margin-top: 10px;
+        }
+        
+        /* 响应式网格：手机上显示2列，iPad/电脑上显示4列 */
+        .dashboard { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 12px; 
+            margin-bottom: 20px; 
+        }
+        @media (min-width: 768px) {
+            .dashboard { grid-template-columns: repeat(4, 1fr); }
+        }
+        
+        .card { 
+            background: white; 
+            padding: 15px 10px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            text-align: center; 
+        }
+        .card h3 { margin: 0 0 8px 0; font-size: 14px; color: #7f8c8d; }
+        .card p { margin: 0; font-size: 18px; font-weight: bold; color: #2c3e50; }
+        
+        /* 按钮排版：手机上竖排又大又宽，iPad上横排 */
+        .controls { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        @media (min-width: 768px) {
+            .controls { flex-direction: row; }
+        }
+        
+        button { 
+            padding: 16px; 
+            font-size: 18px; 
+            font-weight: bold;
+            cursor: pointer; 
+            border: none; 
+            border-radius: 10px; 
+            background: #3498db; 
+            color: white; 
+            width: 100%;
+            box-shadow: 0 4px 0 #2980b9; /* 增加一点立体的按键感 */
+            transition: 0.1s;
+            /* 禁止双击放大 */
+            touch-action: manipulation; 
+        }
+        button:active { 
+            transform: translateY(4px); /* 按下时会有按动动画 */
+            box-shadow: 0 0 0 #2980b9;
+        }
+        
+        /* 消息框优化 */
+        #log { 
+            background: #2c3e50; 
+            color: #ecf0f1; 
+            padding: 15px; 
+            height: 250px; 
+            overflow-y: auto; 
+            border-radius: 12px; 
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        #log p { 
+            margin: 0 0 10px 0; 
+            border-bottom: 1px solid #34495e; 
+            padding-bottom: 10px; 
+        }
     </style>
 </head>
 <body>
     <h1>🏫 校长模拟器</h1>
     
     <div class="dashboard">
-        <div class="card"><h3>资金</h3><p id="money">¥1000</p></div>
-        <div class="card"><h3>学生</h3><p id="studentCount">0 / 20</p></div>
-        <div class="card"><h3>教师</h3><p id="teacherCount">0</p></div>
-        <div class="card"><h3>升学率</h3><p id="promoRate">0%</p></div>
+        <div class="card"><h3>💰 资金</h3><p id="money">¥1000</p></div>
+        <div class="card"><h3>👨‍🎓 学生</h3><p id="studentCount">0 / 20</p></div>
+        <div class="card"><h3>👨‍🏫 教师</h3><p id="teacherCount">0</p></div>
+        <div class="card"><h3>📈 升学率</h3><p id="promoRate">0%</p></div>
     </div>
 
     <div class="controls">
-        <button onclick="buildClassroom()">建新教室 (¥500)</button>
-        <button onclick="hireTeacher()">招聘老师 (¥300)</button>
+        <button onclick="buildClassroom()">🏗️ 建新教室 (¥500)</button>
+        <button onclick="hireTeacher()">🤝 招聘老师 (¥300)</button>
     </div>
 
     <div id="log">

@@ -282,6 +282,25 @@ function nextRound() {
     state.round++;
     updateUI();
     if(state.money < 0) { alert("你破产了，校长！"); location.reload(); }
+    // 每回合自然减压逻辑补丁
+const originalNextRound = nextRound;
+nextRound = function() {
+    // 检查是否有特殊减压建筑
+    let relaxBonus = state.slots.reduce((sum, s) => {
+        return sum + (s && s.pressure < 0 ? Math.abs(s.pressure) * s.lv : 0);
+    }, 0);
+    
+    // 执行原结算
+    originalNextRound();
+    
+    // 结算后额外应用建筑减压 buff
+    if(relaxBonus > 0) {
+        state.pressure = Math.max(0, state.pressure - (relaxBonus / 10));
+        addLog(`🧘 校园环境（减压设施）发挥作用，额外缓解了压力。`);
+        updateUI();
+    }
+};
+
 }
 
 // 基础辅助功能

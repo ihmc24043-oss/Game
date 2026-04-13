@@ -458,277 +458,118 @@ window.doPR = function() {
     }
     
 /* ============================================================
-   传奇校长：全系统重构补丁 (暴力修复版)
+   传奇校长：全能重做补丁 (修复布局 + 强力减压模式)
    ============================================================ */
 
-(function rebuildSystem() {
-    // 1. 强行重置核心变量 (确保数值存在)
-    if (typeof state === 'undefined') {
-        window.state = { 
-            money: 1000000, pressure: 0, reputation: 60, students: 20, 
-            capacity: 50, round: 1, mode: 2, teachers: [], slots: Array(24).fill(null) 
-        };
+// 1. 强制重置 UI 布局 CSS (修复按钮错位和消失问题)
+const layoutStyle = document.createElement('style');
+layoutStyle.innerHTML = `
+    /* 强行定位底部控制区 */
+    .controls {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        background: white !important;
+        padding: 15px 0 !important;
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.1) !important;
+        z-index: 10000 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
     }
+    .mode-toggles {
+        display: flex !important;
+        gap: 10px !important;
+        margin-bottom: 12px !important;
+        justify-content: center !important;
+    }
+    .btn-mode {
+        padding: 8px 15px !important;
+        border-radius: 20px !important;
+        border: 1px solid #ddd !important;
+        background: #f8f9fa !important;
+        font-size: 13px !important;
+        transition: 0.3s !important;
+    }
+    .btn-mode.active {
+        background: #3498db !important;
+        color: white !important;
+        border-color: #3498db !important;
+    }
+    .btn-next {
+        width: 90% !important;
+        padding: 15px !important;
+        border-radius: 30px !important;
+        background: #2c3e50 !important;
+        color: #f1c40f !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+        border: none !important;
+    }
+`;
+document.head.appendChild(layoutStyle);
 
-    // 2. 注入强制置顶的 CSS 样式
-    const style = document.createElement('style');
-    style.innerHTML = `
-        #rebuild-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: #2c3e50; padding: 15px 0; z-index: 10000;
-            display: flex; flex-direction: column; align-items: center;
-            border-top: 3px solid #f1c40f; box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
-        }
-        .rebuild-modes { display: flex; gap: 10px; margin-bottom: 12px; }
-        .mode-btn-new {
-            padding: 8px 15px; border-radius: 20px; border: 1px solid #7f8c8d;
-            background: #34495e; color: #ecf0f1; font-size: 13px; cursor: pointer;
-        }
-        .mode-btn-new.active {
-            background: #3498db; color: white; border-color: #fff; font-weight: bold;
-        }
-        .mode-btn-new.fo-mode { border-color: #27ae60; }
-        .mode-btn-new.fo-mode.active { background: #27ae60; }
-        
-        .next-round-btn {
-            width: 90%; padding: 15px; background: #f1c40f; color: #2c3e50;
-            border: none; border-radius: 30px; font-size: 18px; font-weight: bold;
-            box-shadow: 0 4px 0 #d4ac0d;
-        }
-        .next-round-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #d4ac0d; }
-        
-        /* 隐藏旧的冲突 UI */
-        .controls, .mode-toggles { display: none !important; }
-    `;
-    document.head.appendChild(style);
-
-    // 3. 强行在 Body 挂载全新的 UI 浮层
-    const panel = document.createElement('div');
-    panel.id = 'rebuild-panel';
-    panel.innerHTML = `
-        <div class="rebuild-modes">
-            <button class="mode-btn-new fo-mode" id="mb-1" onclick="sysSetMode(1)">🍃 佛系(减压)</button>
-            <button class="mode-btn-new" id="mb-2" onclick="sysSetMode(2)">⚖️ 标准</button>
-            <button class="mode-btn-new" id="mb-3" onclick="sysSetMode(3)">🔥 应试(提分)</button>
-        </div>
-        <button class="next-round-btn" onclick="sysNextRound()">🔔 进入下一学期结算</button>
-    `;
-    document.body.appendChild(panel);
-
-    // 4. 重做：模式切换逻辑
-    window.sysSetMode = function(m) {
-        state.mode = m;
-        document.querySelectorAll('.mode-btn-new').forEach((b, i) => {
-            b.classList.toggle('active', (i + 1) === m);
-        });
-        const tips = [
-            "【佛系】模式：压力每回合强制 -30%", 
-            "【标准】模式：正常运营", 
-            "【应试】模式：质量翻倍，但压力 +20%"
-        ];
-        addLog(`系统：${tips[m-1]}`);
-    };
-
-    // 5. 重做：学期结算逻辑 (彻底解决压力问题)
-    window.sysNextRound = function() {
-        // 自动补全必要条件 (防止报错无法开始)
-        if (state.teachers.length < 1) {
-            addLog("系统：自动为你招募了基础教职工...");
-            for(let i=0; i<6; i++) state.teachers.push({name:"临时工", salary:2000, power:10});
-        }
-
-        // 基础逻辑运算
-        let studyGain = state.teachers.reduce((a, b) => a + b.power, 0);
-        let roomStudy = state.slots.reduce((a, b) => a + (b ? (b.study || 0) : 0), 0);
-        let roomPressure = state.slots.reduce((a, b) => a + (b ? (b.pressure || 0) : 0), 0);
-
-        // --- 核心：模式修正 ---
-        if (state.mode === 1) { // 佛系
-            state.pressure = Math.max(0, state.pressure - 30 + (roomPressure * 0.5));
-            state.reputation += (studyGain + roomStudy) * 0.05;
-            addLog("🧘 [佛系减压] 学生们去爬山了，压力大减！");
-        } else if (state.mode === 3) { // 应试
-            state.pressure = Math.min(100, state.pressure + 20 + (roomPressure * 1.5));
-            state.reputation += (studyGain + roomStudy) * 0.3;
-            addLog("👿 [应试魔鬼] 狂刷卷子，声望大涨，压力狂飙！");
-        } else { // 标准
-            state.pressure = Math.max(0, Math.min(100, state.pressure + roomPressure + 5));
-            state.reputation += (studyGain + roomStudy) * 0.15;
-            addLog("⚖️ [标准模式] 平稳度过了一个学期。");
-        }
-
-        // 财务
-        let income = state.students * (state.fee || 5000);
-        let outgo = state.teachers.reduce((a, b) => a + b.salary, 0);
-        state.money += (income - outgo);
-        
-        state.round++;
-        
-        // 强制刷新
-        if(typeof updateUI === 'function') updateUI();
-        else {
-            // 如果 updateUI 被删了，强行更新显示
-            const mDisp = document.getElementById('money');
-            if(mDisp) mDisp.innerText = `¥${state.money.toLocaleString()}`;
-            const pDisp = document.getElementById('pressure');
-            if(pDisp) pDisp.innerText = `${Math.floor(state.pressure)}%`;
-        }
-    };
-
-    // 默认开启标准模式
-    sysSetMode(2);
-})();
-
-};
-
-// 重新初始化一次，确保补丁生效
-renderCampus();
-/* --- 模式系统重做：佛系减压版 --- */
-
-// 1. 强制重写模式切换逻辑
+// 2. 重新定义模式逻辑 (佛系 = 强力减压)
 window.setMode = function(m) {
     state.mode = m;
-    
-    // 更新按钮视觉效果
-    document.querySelectorAll('.btn-mode').forEach((btn, index) => {
-        btn.classList.toggle('active', index + 1 === m);
+    // 更新视觉
+    document.querySelectorAll('.btn-mode').forEach((btn, i) => {
+        btn.classList.toggle('active', (i + 1) === m);
     });
-
-    // 模式切换即时反馈
-    const modes = [
-        { name: "佛系教育", desc: "大幅减缓压力，学生心情愉悦（产出降低）", color: "#27ae60" },
-        { name: "标准模式", desc: "平衡发展，各数值中规中矩", color: "#3498db" },
-        { name: "应试魔鬼", desc: "极限提升教学质量，但学生压力会暴增！", color: "#e74c3c" }
+    
+    const logs = [
+        "🍃 切换到【佛系模式】：学生们现在每天只上半天课，压力将直线下降！",
+        "⚖️ 切换到【标准模式】：维持正常的教学秩序。",
+        "🔥 切换到【应试模式】：全员进入刷题状态，声望飞涨，但压力爆表！"
     ];
-    
-    addLog(`📢 政策调整：<span style="color:${modes[m-1].color}; font-weight:bold;">${modes[m-1].name}</span> - ${modes[m-1].desc}`);
-    updateUI();
+    addLog(logs[m-1]);
 };
 
-// 2. 核心：重写结算逻辑中的压力计算 (补丁挂载)
-// 这里的逻辑会根据 state.mode 动态调整压力
-const originalNextRoundForMode = nextRound;
-nextRound = function() {
-    // 在结算前，根据当前模式设置一个“压力系数”
-    // 佛系(1): 0.3倍压力 | 标准(2): 1.0倍压力 | 应试(3): 2.5倍压力
-    let pressureFactor = 1.0;
-    let studyBonus = 1.0;
+// 3. 拦截结算函数 (重做压力系统)
+const originalNextRound = nextRound;
+window.nextRound = function() {
+    // 运行原有的结算逻辑
+    originalNextRound();
 
-    if (state.mode === 1) { 
-        pressureFactor = -15; // 佛系模式每回合直接强力扣除基础压力值
-        studyBonus = 0.6;    // 教学产出变低
-    } else if (state.mode === 3) {
-        pressureFactor = 2.5; // 应试模式压力翻倍
-        studyBonus = 2.0;    // 教学产出翻倍
-    }
-
-    // 调用原有的结算函数
-    originalNextRoundForMode();
-
-    // 结算后修正：如果处于佛系模式，强制再减去一部分压力
+    // 模式强行修正
     if (state.mode === 1) {
-        state.pressure = Math.max(0, state.pressure - 20); 
-        addLog("🍃 佛系模式生效：通过组织郊游和缩短课时，学生压力大幅下降。");
+        // 佛系模式：强制再减掉 30% 压力
+        state.pressure = Math.max(0, state.pressure - 30);
+        addLog("✨ [佛系特效] 学生去看了场电影，压力消散了。");
+    } else if (state.mode === 3) {
+        // 应试模式：额外增加 20% 压力
+        state.pressure = Math.min(100, state.pressure + 20);
+        addLog("💢 [魔鬼应试] 学生们正在通宵刷题！");
     }
     
     updateUI();
 };
 
-// 3. 自动生成/修复模式切换 UI
-(function ensureModeButtons() {
+// 4. 自动找回丢失的按钮 (暴力注入)
+(function ensureButtons() {
     setTimeout(() => {
-        let controls = document.querySelector('.controls');
-        if (!controls) return;
-
-        // 如果没有模式按钮组，强行插入
-        if (!document.querySelector('.mode-toggles')) {
-            const toggleHTML = `
-                <div class="mode-toggles" style="display:flex; gap:10px; margin-bottom:10px;">
-                    <button class="btn-mode ${state.mode===1?'active':''}" onclick="setMode(1)" style="border-radius:20px; padding:6px 12px; font-size:12px;">佛系教育</button>
-                    <button class="btn-mode ${state.mode===2?'active':''}" onclick="setMode(2)" style="border-radius:20px; padding:6px 12px; font-size:12px;">标准模式</button>
-                    <button class="btn-mode ${state.mode===3?'active':''}" onclick="setMode(3)" style="border-radius:20px; padding:6px 12px; font-size:12px;">应试魔鬼</button>
-                </div>
-            `;
-            controls.insertAdjacentHTML('afterbegin', toggleHTML);
-        }
-    }, 500);
-})();
-/* --- 模式系统：全自动恢复与重做补丁 --- */
-
-(function rebootModeSystem() {
-    // 1. 强行在页面底部注入 HTML 结构 (防止你删掉了相关的 div)
-    const injectHTML = () => {
-        // 如果页面没有控制栏，直接在 body 最后加一个
         let controls = document.querySelector('.controls');
         if (!controls) {
             controls = document.createElement('div');
             controls.className = 'controls';
             document.body.appendChild(controls);
         }
-
-        // 强行清理并重做模式按钮组
-        let modeToggles = document.querySelector('.mode-toggles');
-        if (!modeToggles) {
-            modeToggles = document.createElement('div');
-            modeToggles.className = 'mode-toggles';
-            // 插入到“结束本学期”按钮之前
-            const nextBtn = controls.querySelector('.btn-next');
-            if (nextBtn) controls.insertBefore(modeToggles, nextBtn);
-            else controls.appendChild(modeToggles);
+        
+        // 确保模式按钮存在
+        if (!document.querySelector('.mode-toggles')) {
+            controls.innerHTML = `
+                <div class="mode-toggles">
+                    <button class="btn-mode ${state.mode===1?'active':''}" onclick="setMode(1)">佛系教育</button>
+                    <button class="btn-mode ${state.mode===2?'active':''}" onclick="setMode(2)">标准模式</button>
+                    <button class="btn-mode ${state.mode===3?'active':''}" onclick="setMode(3)">应试魔鬼</button>
+                </div>
+                <button class="btn-next" onclick="nextRound()">🔔 结束本学期 / 进入下一天</button>
+            `;
         }
+    }, 1000);
+})();
 
-        // 写入按钮内容
-        modeToggles.innerHTML = `
-            <button class="btn-mode ${state.mode === 1 ? 'active' : ''}" onclick="setMode(1)">佛系教育</button>
-            <button class="btn-mode ${state.mode === 2 ? 'active' : ''}" onclick="setMode(2)">标准模式</button>
-            <button class="btn-mode ${state.mode === 3 ? 'active' : ''}" onclick="setMode(3)">应试魔鬼</button>
-        `;
-    };
-
-    // 2. 重新定义 setMode 逻辑 (重点：佛系减压)
-    window.setMode = function(m) {
-        state.mode = m;
-        // 刷新 UI 样式
-        document.querySelectorAll('.btn-mode').forEach((btn, i) => {
-            btn.classList.toggle('active', (i + 1) === m);
-        });
-
-        const msgs = [
-            "🍃 已切换为【佛系模式】：压力将每回合大幅自动减少！",
-            "📊 已切换为【标准模式】：稳健发展。",
-            "🔥 已切换为【应试模式】：教学质量暴涨，但压力也会狂飙！"
-        ];
-        addLog(msgs[m-1]);
-    };
-
-    // 3. 拦截并重做结算逻辑 (让佛系模式真正减压)
-    const originalNextRound = nextRound;
-    window.nextRound = function() {
-        // --- 结算前修正 ---
-        if (state.mode === 1) {
-            // 佛系模式：降低一点基础压力增长
-            addLog("🧘 佛系光环生效中...");
-        }
-
-        // 执行原有结算逻辑
-        originalNextRound();
-
-        // --- 结算后修正 (强制减压) ---
-        if (state.mode === 1) {
-            // 佛系模式：每回合额外减 20% 压力，且压力上限锁定在低位
-            state.pressure = Math.max(0, state.pressure - 25);
-            addLog("✨ 佛系效果：学生们在冥想和玩耍中释放了大量压力。");
-        } else if (state.mode === 3) {
-            // 应试模式：额外增加 15% 压力
-            state.pressure = Math.min(100, state.pressure + 15);
-            addLog("💢 应试压力：繁重的课业让学生喘不过气！");
-        }
-
-        updateUI(); // 确保数值立即刷新
-    };
-
-    // 执行注入
-    setTimeout(injectHTML, 500);
 })();
 
 

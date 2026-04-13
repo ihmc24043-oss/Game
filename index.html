@@ -471,6 +471,24 @@ function doPR() {
     <div id="modal-content" style="display:grid; grid-template-columns: 1fr; gap:8px;"></div>
     <button onclick="closeModal()" style="width:100%; margin-top:20px; padding:12px; background:#95a5a6; border:none; border-radius:10px; color:white;">取消</button>
 </div>
+/* 大型教室合并视觉效果 */
+.slot.large-parent {
+    grid-column: span 2; /* 跨越两列 */
+    background: #fff;
+    border: 2px solid #f1c40f; /* 金色边框突出 */
+    min-height: 80px;
+}
+
+/* 被占用的附属格隐藏 */
+.slot.is-part {
+    display: none; 
+}
+
+/* 弹窗内部滚动条，防止教室太多显示不全 */
+.modal {
+    max-height: 75vh;
+    overflow-y: auto;
+}
 
 // 启动
 init();

@@ -550,6 +550,22 @@ function upgradeRoom(index) {
         } else { alert("资金不足！"); }
     }
 }
+-/* 大型教室合并视觉效果 */
+-.slot.large-parent {
+grid-column: span
+1 2; /＊ 跨越两列＊/
+background: #fff;
+border: 2px solid #f1c40f；/* 金色边框突出*/
+min-height: 80px;
+-｝
+-/＊ 被占用的附属格隠藏＊/
+- slot. is-part {
+display: none;
+-｝
+-/* 弹窗内部滚动条，防止教室太多显示不全*/
+- modal {
+max-height: 75vh; overflow-y: auto;
+-｝
 /* 让大教室主格横跨两个地块 */
 .slot.large-parent {
     grid-column: span 2; 

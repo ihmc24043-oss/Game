@@ -549,6 +549,97 @@ window.doPR = function() {
         updateUI();
     }
 };
+/* --- 传奇校长：强制系统重构补丁 (暴力修复) --- */
+
+(function heavyDutyRepair() {
+    // 1. 强制注入 CSS，确保 UI 绝对可见且置顶，不被原有布局影响
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #force-control-panel {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; background: rgba(44, 62, 80, 0.98); padding: 15px;
+            border-radius: 20px; box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
+            z-index: 100000; display: flex; flex-direction: column; gap: 10px;
+            backdrop-filter: blur(10px); border: 2px solid #3498db;
+        }
+        .mode-row { display: flex; justify-content: space-around; gap: 8px; }
+        .mode-btn {
+            flex: 1; padding: 12px 5px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);
+            background: #34495e; color: #bdc3c7; font-size: 13px; font-weight: bold; cursor: pointer;
+        }
+        .mode-btn.active-mode { background: #27ae60; color: white; border-color: #fff; box-shadow: 0 0 10px rgba(39, 174, 96, 0.5); }
+        .next-btn-mega {
+            background: #f1c40f; color: #2c3e50; padding: 16px; border-radius: 15px;
+            border: none; font-weight: bold; font-size: 18px; cursor: pointer;
+            box-shadow: 0 4px 0 #d4ac0d; text-align: center;
+        }
+        .next-btn-mega:active { transform: translateY(2px); box-shadow: 0 2px 0 #d4ac0d; }
+    `;
+    document.head.appendChild(style);
+
+    // 2. 强制创建全新的控制浮层 (即使你 HTML 删空了也能显示)
+    const panel = document.createElement('div');
+    panel.id = 'force-control-panel';
+    panel.innerHTML = `
+        <div style="color:white; font-size:12px; text-align:center; margin-bottom:5px; opacity:0.8;">— 校长紧急控制台 —</div>
+        <div class="mode-row">
+            <button class="mode-btn" id="m-btn-1" onclick="forceSetMode(1)">🍃 佛系模式</button>
+            <button class="mode-btn active-mode" id="m-btn-2" onclick="forceSetMode(2)">⚖️ 标准</button>
+            <button class="mode-btn" id="m-btn-3" onclick="forceSetMode(3)">🔥 应试魔鬼</button>
+        </div>
+        <button class="next-btn-mega" onclick="forceNextRound()">🔔 进入下一学期结算</button>
+    `;
+    document.body.appendChild(panel);
+
+    // 3. 重新定义模式切换逻辑
+    window.forceSetMode = function(m) {
+        state.mode = m;
+        document.querySelectorAll('.mode-btn').forEach((b, i) => {
+            b.classList.toggle('active-mode', (i + 1) === m);
+        });
+        const tips = ["已开启佛系减压：每学期大幅自动减压", "已恢复标准模式", "已进入应试模式：成绩翻倍但压力暴涨"];
+        if(typeof addLog === 'function') addLog(`系统：${tips[m-1]}`);
+    };
+
+    // 4. 重新定义结算逻辑 (彻底解决减压问题)
+    window.forceNextRound = function() {
+        // 门槛检查 (如果你的基础判断逻辑也被删了，这里提供保底)
+        const builtRooms = state.slots ? state.slots.filter(s => s !== null).length : 0;
+        if(builtRooms < 1) {
+            alert("校长，至少要建一个教室才能开学！");
+            return;
+        }
+
+        // 尝试执行你原有的结算，如果挂了就跳过
+        try { 
+            if(typeof nextRound === 'function') nextRound(); 
+        } catch(e) { 
+            console.warn("原结算函数受损，执行保底逻辑");
+            state.round++;
+            state.money += (state.students || 0) * 1000;
+        }
+
+        // --- 核心模式修正：强制影响压力 ---
+        if (state.mode === 1) {
+            // 佛系模式：强制大幅扣除 35% 压力
+            state.pressure = Math.max(0, state.pressure - 35);
+            if(typeof addLog === 'function') addLog("🧘 [佛系生效] 全校组织带薪午睡，压力大幅消散！");
+        } else if (state.mode === 3) {
+            // 应试模式：额外增加 20% 压力
+            state.pressure = Math.min(100, state.pressure + 20);
+            if(typeof addLog === 'function') addLog("👿 [魔鬼生效] 疯狂考试中，学生压力暴增！");
+        }
+
+        if(typeof updateUI === 'function') updateUI();
+    };
+
+    // 5. 隐藏旧的无效 UI
+    setTimeout(() => {
+        const oldControls = document.querySelector('.controls') || document.querySelector('.mode-toggles');
+        if (oldControls) oldControls.style.display = 'none';
+    }, 500);
+
+})();
 
 
 // 启动游戏

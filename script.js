@@ -277,6 +277,125 @@ function addLog(msg) {
     const log = document.getElementById('log');
     log.innerHTML = `> ${msg}<br>${log.innerHTML}`;
 }
+// 1. 扩充后的教室定义
+const ROOM_DEFS = {
+    // --- 核心学科 ---
+    std_class: { name: "标准教室", cost: 30000, study: 10, pressure: 5, size: 1 },
+    lang_lab: { name: "语言实验室", cost: 60000, study: 18, pressure: 3, size: 1 },
+    human_room: { name: "人文教室", cost: 45000, study: 12, pressure: 2, size: 1 },
+    math_sem: { name: "数学研讨室", cost: 55000, study: 20, pressure: 8, size: 1 },
+
+    // --- 科学技术 ---
+    phy_lab: { name: "物理实验室", cost: 85000, study: 25, pressure: 10, size: 1 },
+    chem_lab: { name: "化学实验室", cost: 90000, study: 28, pressure: 12, size: 1 },
+    bio_lab: { name: "生物实验室", cost: 80000, study: 22, pressure: 8, size: 1 },
+    comp_lab: { name: "计算机房", cost: 120000, study: 35, pressure: 5, size: 1 },
+    maker_space: { name: "创客空间", cost: 150000, study: 40, pressure: -5, size: 1 },
+
+    // --- 艺术表演 ---
+    art_studio: { name: "美术工作室", cost: 70000, study: 15, pressure: -8, size: 1 },
+    pottery_room: { name: "陶艺教室", cost: 75000, study: 12, pressure: -12, size: 1 },
+    music_room: { name: "音乐教室", cost: 85000, study: 18, pressure: -15, size: 1 },
+    dance_studio: { name: "舞蹈教室", cost: 100000, study: 20, pressure: -10, size: 1 },
+
+    // --- 职业与实践 ---
+    culinary_lab: { name: "烹饪实验室", cost: 95000, study: 15, pressure: -18, size: 1 },
+    fashion_studio: { name: "服装设计室", cost: 88000, study: 18, pressure: -5, size: 1 },
+
+    // --- 辅助与健康 ---
+    library: { name: "图书馆(大)", cost: 250000, study: 30, pressure: -10, size: 2 }, // 占用2格
+    clinic: { name: "心理辅导室", cost: 120000, study: 0, pressure: -30, size: 1 },
+    career_off: { name: "职业规划室", cost: 80000, study: 10, reputation: 15, size: 1 },
+    study_hall: { name: "自习室", cost: 40000, study: 15, pressure: 10, size: 1 },
+
+    // --- 大型空间 ---
+    gym: { name: "室内体育馆", cost: 400000, study: 10, pressure: -25, size: 2 }, // 占用2格
+    auditorium: { name: "大礼堂", cost: 500000, study: 5, reputation: 50, size: 2 }, // 占用2格
+    fitness_suite: { name: "健身房", cost: 150000, study: 5, pressure: -20, size: 1 }
+};
+
+// 2. 修改后的建造函数 (处理双格占用)
+function openBuildModal(index) {
+    if (state.slots[index]) {
+        upgradeRoom(index); // 如果有东西，就触发升级
+        return;
+    }
+
+    const content = document.getElementById('modal-content');
+    content.innerHTML = '';
+
+    for (let key in ROOM_DEFS) {
+        const r = ROOM_DEFS[key];
+        const canBuildLarge = (r.size === 2 && (index % 4 !== 3) && !state.slots[index + 1]);
+        
+        // 如果是大型建筑但右侧没位置，则禁用
+        const isDisable = (r.size === 2 && !canBuildLarge);
+
+        content.innerHTML += `
+            <button onclick="buildRoom(${index}, '${key}')" 
+                ${isDisable ? 'disabled style="opacity:0.4"' : ''} 
+                style="padding:15px; border:1px solid #ddd; border-radius:10px; background:#fff; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <b style="font-size:14px;">${r.name} ${r.size === 2 ? '(大)' : ''}</b><br>
+                    <span style="font-size:11px; color:#666;">效果: 学术+${r.study || 0} 压力${r.pressure || 0}</span>
+                </div>
+                <b style="color:#e67e22;">¥${r.cost.toLocaleString()}</b>
+            </button>`;
+    }
+    document.getElementById('modal').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+}
+
+function buildRoom(index, type) {
+    const room = ROOM_DEFS[type];
+    if (state.money >= room.cost) {
+        // 扣钱
+        state.money -= room.cost;
+        
+        // 基础属性
+        const newRoom = { ...room, type, lv: 1 };
+        
+        // 处理占用
+        state.slots[index] = newRoom;
+        if (room.size === 2) {
+            state.slots[index + 1] = { name: "占用 (附属于" + room.name + ")", isPart: true, parentIndex: index };
+        }
+
+        addLog(`[建设] ${room.name} 竣工，投入使用！`);
+        closeModal();
+        renderCampus();
+        updateUI();
+    } else {
+        alert("校长，预算不足！");
+    }
+}
+
+// 3. 升级系统：更新硬件 (Update)
+function upgradeRoom(index) {
+    let s = state.slots[index];
+    // 如果点到的是大建筑的附属格，跳转到主格
+    if (s.isPart) {
+        index = s.parentIndex;
+        s = state.slots[index];
+    }
+
+    const upCost = Math.floor(s.cost * 1.5 * s.lv);
+    if (confirm(`升级 ${s.name} 到 Lv.${s.lv + 1}?\n消耗: ¥${upCost.toLocaleString()}\n效果: 效率提升 30%`)) {
+        if (state.money >= upCost) {
+            state.money -= upCost;
+            s.lv++;
+            // 属性提升逻辑
+            s.study = Math.floor(s.study * 1.3);
+            if(s.pressure < 0) s.pressure = Math.floor(s.pressure * 1.2); // 减压效果更强
+            
+            addLog(`[升级] ${s.name} 已更新到最新配置 (Lv.${s.lv})`);
+            renderCampus();
+            updateUI();
+        } else {
+            alert("钱不够升级！");
+        }
+    }
+}
 
 // 启动
 init();

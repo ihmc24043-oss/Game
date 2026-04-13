@@ -1,5 +1,5 @@
 /**
- * 校长：黑暗权力重制版 核心脚本
+ * 传奇校长：黑暗权力 (24地块硬核版)
  */
 
 const DATA = {
@@ -18,175 +18,212 @@ const DATA = {
     ]
 };
 
+// 初始状态
 let game = {
-    money: 1000000, pressure: 0, rep: 60, round: 1, joy: 0, media: 0,
-    slots: Array(24).fill(null),
+    money: 1000000,
+    pressure: 0,
+    rep: 60,
+    round: 1,
+    joy: 0,
+    media: 0,
+    slots: Array(24).fill(null), // 必须确保是24个
     teachers: [],
     tuition: 8000
 };
 
-// --- 初始化网格 ---
-function initGrid() {
-    const g = document.getElementById('game-grid');
-    g.innerHTML = '';
-    game.slots.forEach((s, i) => {
-        const div = document.createElement('div');
-        div.className = `cell ${s ? 'occupied' : ''}`;
-        div.innerHTML = s ? `<div class="lv-tag">Lv.${s.lv}</div>${s.name}` : '+';
-        div.onclick = () => s ? upgradeRoom(i) : buildMenu(i);
-        g.appendChild(div);
-    });
-    checkLock();
+// --- 核心渲染函数 ---
+function renderGrid() {
+    const gridContainer = document.getElementById('game-grid');
+    if (!gridContainer) return;
+
+    gridContainer.innerHTML = ''; // 清空重新画
+    
+    for (let i = 0; i < 24; i++) {
+        const slotData = game.slots[i];
+        const cell = document.createElement('div');
+        
+        // 样式处理
+        cell.className = slotData ? 'cell occupied' : 'cell';
+        
+        if (slotData) {
+            // 已建成建筑的内容
+            cell.innerHTML = `
+                <div class="lv-tag">Lv.${slotData.lv}</div>
+                <div style="font-size:10px; color:#2c3e50;">#${i+1}</div>
+                <div style="font-size:11px;">${slotData.name}</div>
+            `;
+            cell.onclick = () => upgradeRoom(i);
+        } else {
+            // 空地块的内容
+            cell.innerHTML = `<span style="color:#666; font-size:12px;">#${i+1}</span><br><span style="color:#444; font-size:16px;">+</span>`;
+            cell.onclick = () => buildMenu(i);
+        }
+        
+        gridContainer.appendChild(cell);
+    }
+    checkRequirements();
 }
 
-function checkLock() {
-    const rooms = game.slots.filter(s => s && s.id.startsWith('c')).length;
-    const teas = game.teachers.length;
-    document.getElementById('room-count').innerText = `${rooms}/6`;
-    document.getElementById('tea-count').innerText = `${teas}/6`;
+// --- 检查开学门槛 ---
+function checkRequirements() {
+    const builtClassrooms = game.slots.filter(s => s && s.id.startsWith('c')).length;
+    const teacherCount = game.teachers.length;
+    
+    // 更新顶部数字
+    document.getElementById('room-count').innerText = `${builtClassrooms}/6`;
+    document.getElementById('tea-count').innerText = `${teacherCount}/6`;
+    
     const btn = document.getElementById('run-btn');
-    if(rooms >= 6 && teas >= 6) {
+    if (builtClassrooms >= 6 && teacherCount >= 6) {
         btn.disabled = false;
-        btn.innerText = "🔔 开始第 " + game.round + " 学期结算";
+        btn.style.background = "#2ecc71"; // 达标变绿
+        btn.style.color = "white";
+        btn.innerText = `🔔 开始第 ${game.round} 学期结算`;
     } else {
         btn.disabled = true;
-        btn.innerText = "需 6教室 + 6教师 (差" + (6-rooms) + "间/" + (6-teas) + "人)";
+        btn.style.background = "#ccc";
+        btn.innerText = `缺: ${6 - builtClassrooms}教室 / ${6 - teacherCount}教师`;
     }
 }
 
-// --- UI 系统 ---
+// --- 弹窗逻辑 ---
 function modal(title, html) {
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
+    overlay.innerHTML = `
+        <div class="modal">
+            <h3 style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">${title}</h3>
+            ${html}
+            <button onclick="this.closest('.overlay').remove()" style="width:100%; margin-top:15px; padding:10px; border:none; background:#eee; border-radius:10px;">返回</button>
+        </div>
+    `;
     overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
-    overlay.innerHTML = `<div class="modal"><h3>${title}</h3><hr style="margin:10px 0;">${html}</div>`;
     document.body.appendChild(overlay);
 }
 
+// --- 建造与操作 ---
 function buildMenu(idx) {
     let h = DATA.rooms.map(r => `
         <div class="list-item" onclick="doBuild(${idx},'${r.id}')">
-            <b>${r.name}</b> <span style="float:right;color:#e74c3c">¥${r.cost}</span><br>
-            <small>学力+${r.study} | 压力+${r.p} | 容量+${r.cap}</small>
+            <b>${r.name}</b> <span style="float:right; color:#e74c3c;">¥${(r.cost/10000).toFixed(1)}w</span><br>
+            <small>产出:${r.study} | 压力:${r.p} | 学生:+${r.cap}</small>
         </div>
     `).join('');
-    modal("基建工程部", h);
+    modal("选择要建设的设施", h);
 }
 
 function doBuild(idx, rid) {
     let r = DATA.rooms.find(x => x.id === rid);
-    if(game.money >= r.cost) {
+    if (game.money >= r.cost) {
         game.money -= r.cost;
         game.slots[idx] = { ...r, lv: 1 };
-        document.querySelector('.overlay').remove();
+        const modal = document.querySelector('.overlay');
+        if (modal) modal.remove();
         refresh();
-    } else alert("钱不够！");
+    } else {
+        alert("校长，咱们账上钱不够了！");
+    }
 }
 
 function upgradeRoom(idx) {
     let s = game.slots[idx];
-    let cost = s.cost * 0.8;
-    modal(s.name + " 升级中心", `
-        <p>当前等级: Lv.${s.lv}</p>
-        <p>升级费用: ¥${cost}</p>
-        <button onclick="doUpgrade(${idx}, ${cost})" style="width:100%;padding:15px;background:#2ecc71;color:white;border:none;border-radius:10px;margin-top:10px;">执行全方位翻新</button>
-        <button onclick="doRemove(${idx})" style="width:100%;margin-top:20px;background:none;border:none;color:#999;">拆除地块</button>
+    let upgradeCost = Math.floor(s.cost * 0.7);
+    modal(`${s.name} (#${idx+1})`, `
+        <p>当前等级：Lv.${s.lv}</p>
+        <p>升级费用：¥${(upgradeCost/10000).toFixed(1)}w</p>
+        <button onclick="doUpgrade(${idx}, ${upgradeCost})" style="width:100%; padding:15px; background:linear-gradient(to right, #2ecc71, #27ae60); color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold;">全面升级 (产出+60%)</button>
+        <button onclick="doRemove(${idx})" style="width:100%; margin-top:20px; background:none; border:none; color:#e74c3c; font-size:12px;">拆除此建筑 (不退款)</button>
     `);
 }
 
 function doUpgrade(idx, cost) {
-    if(game.money >= cost) {
+    if (game.money >= cost) {
         game.money -= cost;
         game.slots[idx].lv++;
-        game.slots[idx].study *= 1.6;
+        game.slots[idx].study = Math.floor(game.slots[idx].study * 1.6);
         document.querySelector('.overlay').remove();
         refresh();
-    }
+    } else alert("经费不足！");
 }
 
-function doRemove(idx) { game.slots[idx] = null; document.querySelector('.overlay').remove(); refresh(); }
+function doRemove(idx) { 
+    game.slots[idx] = null; 
+    document.querySelector('.overlay').remove(); 
+    refresh(); 
+}
 
-// --- 底部动作栏 ---
+// --- 招聘与其它 ---
 function ui(type) {
-    if(type === 'hire') {
+    if (type === 'hire') {
         let h = DATA.teachers.map(t => `
             <div class="list-item" onclick="doHire('${t.name}',${t.wage},${t.q})">
-                <b>${t.name}</b> <span style="float:right">月薪: ¥${t.wage}</span><br>
-                <small>教学贡献力: +${t.q}</small>
+                <b>${t.name}</b> <span style="float:right;">月薪:¥${t.wage}</span><br>
+                <small>教学贡献：+${t.q}</small>
             </div>
         `).join('');
-        modal("猎头公司", h);
-    } else if(type === 'luxury') {
-        modal("校长奢享店", `
-            <div class="list-item" onclick="buy(100000, 20, '纯金雕像')">🏛️ 纯金自我雕像 - ¥10w (快乐+20)</div>
-            <div class="list-item" onclick="buy(1000000, 200, '私人直升机')">🚁 湾流直升机 - ¥100w (快乐+200)</div>
+        modal("招聘名师", h);
+    } else if (type === 'luxury') {
+        modal("奢侈品商店", `
+            <div class="list-item" onclick="buy(200000, 50, '金表')">⌚ 劳力士校董表 - ¥20w (快乐+50)</div>
+            <div class="list-item" onclick="buy(1500000, 500, '直升机')">🚁 私人直升机 - ¥150w (快乐+500)</div>
         `);
-    } else if(type === 'research') {
-        modal("媒体与政府关系", `
-            <div class="list-item" onclick="upMedia()">📱 升级媒体公关 (当前Lv.${game.media}) - ¥20w<br><small>发生意外时，封口费更便宜，政府拨款更多</small></div>
+    } else if (type === 'research') {
+        modal("科技与媒体", `
+            <div class="list-item" onclick="upMedia()">📱 公关团队 Lv.${game.media} - ¥20w<br><small>降低自杀丑闻罚款</small></div>
         `);
-    } else if(type === 'exchange') {
-        modal("国际交流团", `
-            <div class="list-item" onclick="doExchange(50000, 5)">🇯🇵 东京学术会 - ¥5w (名望+5)</div>
-            <div class="list-item" onclick="doExchange(200000, 25)">🇬🇧 牛津精英行 - ¥20w (名望+25)</div>
+    } else if (type === 'exchange') {
+        modal("国际交流", `
+            <div class="list-item" onclick="doExchange(100000, 15)">🌍 访美学术团 - ¥10w (名望+15)</div>
         `);
     }
 }
 
 function doHire(n, w, q) { game.teachers.push({name:n, wage:w, q:q}); refresh(); }
-function buy(c, j, n) { if(game.money >= c) { game.money -= c; game.joy += j; alert("购买 " + n + " 成功！你感到无比愉悦。"); refresh(); } }
+function buy(c, j, n) { if(game.money >= c) { game.money -= c; game.joy += j; alert("购买成功！"); refresh(); } }
 function upMedia() { if(game.money >= 200000) { game.money -= 200000; game.media++; refresh(); } }
-function doExchange(c, r) { if(game.money >= c) { game.money -= c; game.rep += r; alert("交流圆满完成！"); refresh(); } }
+function doExchange(c, r) { if(game.money >= c) { game.money -= c; game.rep += r; refresh(); } }
 
 function updateFee(v) {
     game.tuition = parseInt(v);
     document.getElementById('fee-val').innerText = v;
     const pill = document.getElementById('risk-pill');
-    if(v < 15000) { pill.innerText = "风险: 安全"; pill.style.color = "green"; }
-    else if(v < 40000) { pill.innerText = "风险: 较高"; pill.style.color = "orange"; }
-    else { pill.innerText = "风险: 极度危险"; pill.style.color = "red"; }
+    if(v < 15000) { pill.innerText = "风险: 安全"; pill.style.background = "#e1f5fe"; }
+    else if(v < 40000) { pill.innerText = "风险: 较高"; pill.style.background = "#fff3e0"; }
+    else { pill.innerText = "风险: 极度危险"; pill.style.background = "#ffeaf0"; }
 }
 
-// --- 结算逻辑 ---
+// --- 学期结算 ---
 function nextRound() {
     let cap = 0, totalS = 0, totalP = 0;
     game.slots.forEach(s => { if(s) { cap += s.cap; totalS += s.study; totalP += s.p; } });
     game.teachers.forEach(t => { totalS += t.q; game.money -= t.wage; });
 
-    // 学费收入与风险
-    if(game.tuition > 15000 && Math.random() < (game.tuition / 100000)) {
-        alert("🚨 教育局接到了大量家长举报！查实你违规高收费，没收所有违规所得并罚款 ¥50w！");
-        game.money -= 500000;
-        game.rep -= 30;
+    // 收入
+    if(game.tuition > 20000 && Math.random() < 0.4) {
+        alert("🚨 家长集体抗议！政府开出 ¥40w 罚单！");
+        game.money -= 400000; game.rep -= 20;
     } else {
         game.money += cap * game.tuition;
     }
 
-    // 状态更新
     game.pressure = Math.max(0, game.pressure + totalP);
     game.rep += Math.floor(totalS / 100);
 
-    // 自杀事件
-    if(game.pressure > 90 && Math.random() < 0.4) {
+    // 自杀逻辑
+    if(game.pressure > 95 && Math.random() < 0.3) {
         let hush = 1000000 / (game.media + 1);
         if(game.money >= hush) {
-            alert(`💀 噩耗：一名学生因无法承受压力在深夜跳楼。你支付了 ¥${(hush/10000).toFixed(1)}w 封口费。由于你的媒体控制力，消息被压下了。`);
+            alert(`💀 噩耗：有学生跳楼。你支付了 ¥${(hush/10000).toFixed(1)}w 封口费。`);
             game.money -= hush;
         } else {
-            alert("💀 惨剧发生！由于你没钱封口，媒体大规模报道！名望清零，政府强制关闭学校！");
+            alert("💀 惨剧曝光！名望清零，学校关停！");
             location.reload();
         }
     }
 
-    // 政府补助
-    game.money += 200000 + (game.media * 50000);
-
-    // 破产判定
-    if(game.money < -50000) { alert("你破产了！债主把你带走了。"); location.reload(); }
-
+    game.money += 150000; // 政府基础补贴
     game.round++;
     refresh();
-    alert("学期结算成功！\n本学期净利润: 结算完成");
 }
 
 function refresh() {
@@ -194,7 +231,7 @@ function refresh() {
     document.getElementById('pressure').innerText = `${game.pressure}%`;
     document.getElementById('rep').innerText = game.rep;
     document.getElementById('joy').innerText = game.joy;
-    initGrid();
+    renderGrid();
 }
 
 window.onload = refresh;

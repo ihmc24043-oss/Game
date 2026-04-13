@@ -462,7 +462,15 @@ function doPR() {
         addLog("媒体公关完成：正面形象提升。");
         updateUI();
     }
+
 }
+
+<div id="modal" class="modal" style="max-height: 80vh; overflow-y: auto;">
+    <h3 id="modal-title">建设校园</h3>
+    <p style="font-size: 10px; color: #e74c3c;">* 大型建筑将占用当前及右侧地块</p>
+    <div id="modal-content" style="display:grid; grid-template-columns: 1fr; gap:8px;"></div>
+    <button onclick="closeModal()" style="width:100%; margin-top:20px; padding:12px; background:#95a5a6; border:none; border-radius:10px; color:white;">取消</button>
+</div>
 
 // 启动
 init();

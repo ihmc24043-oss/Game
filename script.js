@@ -532,6 +532,31 @@ let govGrant = state.reputation * 500;
 if (state.skills.includes('media')) govGrant *= 2; // 如果有媒体技能，钱更多
 state.money += govGrant;
 
+// 追加减压操作函数
+window.takeHoliday = function() {
+    const cost = 20000 + (state.students * 100);
+    if (state.money >= cost) {
+        state.money -= cost;
+        state.pressure = Math.max(0, state.pressure - 30); // 立即减30%压力
+        state.reputation += 5; // 学生和家长很开心
+        addLog("🏝️ 校长宣布全校放假一天！学生压力大幅减退。");
+        updateUI();
+    } else {
+        alert("经费不足，没法给老师发加班工资和补贴。");
+    }
+};
+
+// 媒体公关减压（修复版）
+window.doPR = function() {
+    if (state.money >= 50000) {
+        state.money -= 50000;
+        state.reputation += 15;
+        state.pressure = Math.max(0, state.pressure - 10); // 媒体正面报道也能减压
+        addLog("📢 媒体公关成功：通过美化宣传，缓解了校内焦虑。");
+        updateUI();
+    }
+};
+
 
 // 启动游戏
 window.onload = init;

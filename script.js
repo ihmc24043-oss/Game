@@ -50,15 +50,8 @@ const ROOM_DEFS = {
     // --- 大型空间 ---
     gym: { name: "室内体育馆", cost: 400000, study: 10, pressure: -25, size: 2 }, // 占用2格
     auditorium: { name: "大礼堂", cost: 500000, study: 5, reputation: 50, size: 2 }, // 占用2格
-    fitness_suite: { name: "健身房", cost: 150000, study: 5, pressure: -20, size: 1 }
-    computer: { name: "电脑中心", cost: 120000, study: 25, pressure: 8, desc: "大幅提升科技分" },
-    kitchen: { name: "家政厨室", cost: 60000, study: 10, pressure: -5, desc: "学生很解压" },
-    handcraft: { name: "手工工坊", cost: 55000, study: 12, pressure: -2, desc: "锻炼动手能力" },
-    music: { name: "顶级琴房", cost: 90000, study: 15, pressure: -12, desc: "优雅的减压方式" },
-    hall: { name: "大礼堂", cost: 200000, study: 5, reputation: 20, desc: "提升学校名气" },
-    clinic: { name: "心理咨询室", cost: 150000, pressure: -25, desc: "防止学生自杀神器" },
-    dorm: { name: "新宿舍楼", cost: 180000, capacity: 50, desc: "增加50名学生上限" },
-    science: { name: "高能实验室", cost: 250000, study: 40, pressure: 15, desc: "最强教学提升" }
+    
+    
 };
 
 // 2. 修改后的建造函数 (处理双格占用)

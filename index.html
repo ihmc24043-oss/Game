@@ -3,109 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校长模拟器 - Principal Tycoon</title>
+    <title>校长模拟器：传奇建设者</title>
     <style>
-        body { 
-            font-family: 'Microsoft YaHei', -apple-system, sans-serif; 
-            background: #f0f2f5; 
-            padding: 15px; 
-            margin: 0;
-        }
-        h1 {
-            text-align: center;
-            font-size: 24px;
-            color: #2c3e50;
-            margin-top: 10px;
-        }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 10px; margin: 0; color: #333; }
+        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; position: sticky; top: 0; z-index: 100; background: #f0f2f5; padding-bottom: 5px;}
+        .card { background: white; padding: 8px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; border-top: 3px solid #3498db; }
+        .card h3 { margin: 0; font-size: 10px; color: #7f8c8d; }
+        .card p { margin: 4px 0 0; font-size: 13px; font-weight: bold; }
         
-        /* 响应式网格：手机上显示2列，iPad/电脑上显示4列 */
-        .dashboard { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 12px; 
-            margin-bottom: 20px; 
-        }
-        @media (min-width: 768px) {
-            .dashboard { grid-template-columns: repeat(4, 1fr); }
-        }
+        .section-title { font-size: 15px; font-weight: bold; margin: 15px 0 8px; color: #2c3e50; border-left: 4px solid #e67e22; padding-left: 8px; display: flex; justify-content: space-between; }
         
-        .card { 
-            background: white; 
-            padding: 15px 10px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-            text-align: center; 
-        }
-        .card h3 { margin: 0 0 8px 0; font-size: 14px; color: #7f8c8d; }
-        .card p { margin: 0; font-size: 18px; font-weight: bold; color: #2c3e50; }
+        /* 教室升级网格 */
+        .room-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .room-card { background: white; padding: 10px; border-radius: 10px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; }
+        .room-card h4 { margin: 0; font-size: 13px; color: #2c3e50; }
+        .room-card p { font-size: 9px; color: #7f8c8d; margin: 4px 0; }
+        .lv-tag { color: #e67e22; font-weight: bold; }
+
+        /* 技能树 */
+        .skill-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .s-card { background: #fff; border: 1px solid #3498db; padding: 6px; border-radius: 6px; text-align: center; }
+        .s-card h4 { margin: 0; font-size: 10px; }
+
+        .teacher-market { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; }
+        .t-card { min-width: 120px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); }
         
-        /* 按钮排版：手机上竖排又大又宽，iPad上横排 */
-        .controls { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
-            margin-bottom: 20px; 
-        }
-        @media (min-width: 768px) {
-            .controls { flex-direction: row; }
-        }
+        button { border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:active { transform: scale(0.95); }
+        .btn-upgrade { background: #3498db; width: 100%; padding: 6px; font-size: 10px; margin-top: 5px; }
+        .btn-skill { background: #9b59b6; width: 100%; padding: 4px; font-size: 9px; margin-top: 4px; }
+        .btn-next { background: #2c3e50; width: 100%; padding: 15px; font-size: 18px; color: #f1c40f; border-radius: 12px; margin: 10px 0; box-shadow: 0 4px #1a252f; }
         
-        button { 
-            padding: 16px; 
-            font-size: 18px; 
-            font-weight: bold;
-            cursor: pointer; 
-            border: none; 
-            border-radius: 10px; 
-            background: #3498db; 
-            color: white; 
-            width: 100%;
-            box-shadow: 0 4px 0 #2980b9; /* 增加一点立体的按键感 */
-            transition: 0.1s;
-            /* 禁止双击放大 */
-            touch-action: manipulation; 
-        }
-        button:active { 
-            transform: translateY(4px); /* 按下时会有按动动画 */
-            box-shadow: 0 0 0 #2980b9;
-        }
-        
-        /* 消息框优化 */
-        #log { 
-            background: #2c3e50; 
-            color: #ecf0f1; 
-            padding: 15px; 
-            height: 250px; 
-            overflow-y: auto; 
-            border-radius: 12px; 
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        #log p { 
-            margin: 0 0 10px 0; 
-            border-bottom: 1px solid #34495e; 
-            padding-bottom: 10px; 
-        }
+        #log { background: #2c3e50; color: #ecf0f1; padding: 10px; height: 120px; overflow-y: auto; border-radius: 8px; font-size: 11px; margin-top: 10px; line-height: 1.4; }
+        .highlight { color: #f1c40f; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>🏫 校长模拟器</h1>
-    
     <div class="dashboard">
-        <div class="card"><h3>💰 资金</h3><p id="money">¥1000</p></div>
-        <div class="card"><h3>👨‍🎓 学生</h3><p id="studentCount">0 / 20</p></div>
-        <div class="card"><h3>👨‍🏫 教师</h3><p id="teacherCount">0</p></div>
-        <div class="card"><h3>📈 升学率</h3><p id="promoRate">0%</p></div>
+        <div class="card"><h3>💰 资金</h3><p id="money">¥10000</p></div>
+        <div class="card"><h3>🤯 压力</h3><p id="pressure">0%</p></div>
+        <div class="card"><h3>⭐ 声望</h3><p id="reputation">50</p></div>
+        <div class="card"><h3>🎓 毕业生</h3><p id="gradCount">0</p></div>
+        <div class="card"><h3>👨‍🎓 学生</h3><p id="studentCount">10/30</p></div>
+        <div class="card"><h3>📅 学期</h3><p id="roundCount">1</p></div>
     </div>
 
-    <div class="controls">
-        <button onclick="buildClassroom()">🏗️ 建新教室 (¥500)</button>
-        <button onclick="hireTeacher()">🤝 招聘老师 (¥300)</button>
+    <button class="btn-next" onclick="nextRound()">🔔 结束学期 / 开启毕业礼</button>
+
+    <div class="section-title">🎓 校长个人技能 (永久加成)</div>
+    <div class="skill-grid">
+        <div class="s-card"><h4>口才大师</h4><button class="btn-skill" id="sk-speech" onclick="learnSkill('speech', 5000)">¥5k 学习</button></div>
+        <div class="s-card"><h4>厚脸皮</h4><button class="btn-skill" id="sk-shield" onclick="learnSkill('shield', 8000)">¥8k 学习</button></div>
+        <div class="s-card"><h4>伯乐之眼</h4><button class="btn-skill" id="sk-eye" onclick="learnSkill('eye', 6000)">¥6k 学习</button></div>
     </div>
 
-    <div id="log">
-        <p>系统：欢迎来到你的新学校！请开始建设。</p>
+    <div class="section-title">🏫 校园设施建设 (可升级)</div>
+    <div class="room-grid" id="roomGrid"></div>
+
+    <div class="section-title">👨‍🏫 人才市场 <span style="font-size:10px; color:#999;">每轮自动刷新</span></div>
+    <div id="teacherMarket" class="teacher-market"></div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;">
+        <button onclick="askParentsForMoney()" style="background:#c0392b; padding:12px;">强制赞助费</button>
+        <button onclick="organizeTour()" style="background:#f39c12; padding:12px;">组织豪华游学</button>
     </div>
+
+    <div id="log"></div>
 
     <script src="script.js"></script>
 </body>

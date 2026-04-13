@@ -3,77 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>校长：点不进去修复版</title>
+    <title>校长：黑暗权力模拟器</title>
     <style>
-        :root { --p-blue: #3498db; --p-gold: #f1c40f; --p-dark: #2c3e50; --p-red: #e74c3c; --p-green: #2ecc71; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin:0; padding:0; }
-        body { font-family: sans-serif; background: #1a1a1a; color: #fff; }
-        
+        :root { --p-gold: #ffd700; --p-red: #ff4757; --p-blue: #2f3542; --p-bg: #1e272e; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: "PingFang SC", sans-serif; }
+        body { background: var(--p-bg); color: white; overflow: hidden; height: 100vh; }
+
         /* 状态栏 */
-        .header { background: #000; padding: 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; border-bottom: 2px solid var(--p-gold); }
-        .stat-box { background: #222; padding: 5px; border-radius: 5px; text-align: center; border: 1px solid #444; }
+        .top-nav { background: #000; padding: 10px; display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 2px solid var(--p-gold); }
+        .stat { text-align: center; }
         .stat-label { font-size: 10px; color: #888; display: block; }
-        .stat-val { font-size: 13px; font-weight: bold; color: var(--p-gold); }
+        .stat-val { font-size: 14px; font-weight: bold; color: var(--p-gold); }
 
-        .container { background: #eee; color: #333; border-radius: 25px 25px 0 0; padding: 15px; min-height: 100vh; padding-bottom: 300px; margin-top: 10px; }
-        
-        /* 网格 */
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
-        .slot { aspect-ratio: 1; background: #fff; border-radius: 12px; border: 2px dashed #ccc; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
-        .slot.built { border: 2px solid var(--p-blue); border-style: solid; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .slot-name { font-size: 10px; font-weight: bold; text-align: center; padding: 0 2px; }
-        .lv-tag { position: absolute; top: -5px; right: -5px; background: var(--p-red); color: white; padding: 1px 4px; border-radius: 4px; font-size: 9px; }
+        /* 游戏主区 */
+        #main-view { padding: 15px; height: calc(100vh - 260px); overflow-y: auto; background: linear-gradient(to bottom, #2c3e50, #1e272e); }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .cell { aspect-ratio: 1; background: rgba(255,255,255,0.05); border: 1px dashed #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+        .cell.occupied { background: #fff; color: #000; border: none; font-size: 10px; font-weight: bold; text-align: center; }
+        .lv-tag { position: absolute; top: 0; right: 0; background: var(--p-red); color: white; padding: 1px 4px; font-size: 8px; border-radius: 0 8px 0 8px; }
 
-        /* 底部控制 */
-        .footer { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; border-radius: 20px 20px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.2); z-index: 1000; }
+        /* 底部控制台 */
+        .console { position: fixed; bottom: 0; width: 100%; height: 210px; background: #fff; color: #333; padding: 15px; border-radius: 20px 20px 0 0; }
         .btn-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-        .act-btn { padding: 10px 0; border: none; border-radius: 10px; color: white; font-size: 11px; font-weight: bold; }
+        .action-btn { background: var(--p-blue); color: white; border: none; padding: 10px 5px; border-radius: 8px; font-size: 11px; font-weight: bold; }
         
-        .input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-        .fee-input { width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #ddd; text-align: center; }
+        .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .fee-slider { flex: 1; accent-color: var(--p-red); }
+        .status-pill { background: #f1f2f6; padding: 4px 8px; border-radius: 20px; font-size: 10px; border: 1px solid #ddd; }
 
-        .btn-main { width: 100%; padding: 16px; background: #000; color: var(--p-gold); border: none; border-radius: 15px; font-size: 18px; font-weight: bold; }
-        
-        /* 弹窗核心：防止白条 */
-        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; z-index: 5000; align-items: center; justify-content: center; }
-        .modal-content { width: 90%; background: white; border-radius: 20px; padding: 20px; position: relative; color: #333; max-height: 80vh; overflow-y: auto; }
+        .btn-main { width: 100%; padding: 15px; background: #000; color: var(--p-gold); border: none; border-radius: 12px; font-size: 18px; font-weight: bold; }
+        .btn-main:disabled { background: #ccc; color: #666; }
+
+        /* 物理弹窗样式 */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .modal { width: 85%; background: white; border-radius: 15px; padding: 20px; color: #333; max-height: 80vh; overflow-y: auto; }
+        .list-item { background: #f8f9fa; padding: 12px; margin-bottom: 8px; border-radius: 10px; border-left: 4px solid var(--p-blue); }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="stat-box"><span class="stat-label">经费</span><span class="stat-val" id="money">¥100.0w</span></div>
-    <div class="stat-box"><span class="stat-label">压力</span><span class="stat-val" id="pressure">0%</span></div>
-    <div class="stat-box"><span class="stat-label">名望</span><span class="stat-val" id="rep">60</span></div>
-    <div class="stat-box"><span class="stat-label">学生</span><span class="stat-val" id="stu">0/0</span></div>
-    <div class="stat-box"><span class="stat-label">教工</span><span class="stat-val" id="tea">0</span></div>
-    <div class="stat-box"><span class="stat-label">快乐</span><span class="stat-val" id="hap">0</span></div>
+<div class="top-nav">
+    <div class="stat"><span class="stat-label">金库</span><span class="stat-val" id="money">¥100.0w</span></div>
+    <div class="stat"><span class="stat-label">学生压力</span><span class="stat-val" id="pressure">0%</span></div>
+    <div class="stat"><span class="stat-label">学校名望</span><span class="stat-val" id="rep">60</span></div>
+    <div class="stat"><span class="stat-label">教师人数</span><span class="stat-val" id="tea-count">0/6</span></div>
+    <div class="stat"><span class="stat-label">教室数量</span><span class="stat-val" id="room-count">0/6</span></div>
+    <div class="stat"><span class="stat-label">快乐值</span><span class="stat-val" id="joy">0</span></div>
 </div>
 
-<div class="container">
-    <h3 style="font-size: 15px; margin-bottom: 10px;">🏛️ 校园规划 (点地块建造)</h3>
-    <div class="grid" id="grid"></div>
+<div id="main-view">
+    <div class="grid" id="game-grid"></div>
 </div>
 
-<div class="footer">
+<div class="console">
     <div class="btn-group">
-        <button class="act-btn" style="background:var(--p-blue)" onclick="showHire()">👨‍🏫 招聘</button>
-        <button class="act-btn" style="background:#9b59b6" onclick="showResearch()">🔬 研究</button>
-        <button class="act-btn" style="background:#e67e22" onclick="showExchange()">🌍 交流</button>
-        <button class="act-btn" style="background:#000" onclick="showLuxury()">💎 奢侈品</button>
+        <button class="action-btn" onclick="ui('hire')">👨‍🏫 招名师</button>
+        <button class="action-btn" onclick="ui('research')">🔬 科技树</button>
+        <button class="action-btn" onclick="ui('exchange')">🌍 交流团</button>
+        <button class="action-btn" onclick="ui('luxury')">💎 奢侈品</button>
     </div>
-    <div class="input-row">
-        <select id="mode" style="flex:1; padding:8px; border-radius:8px;">
-            <option value="normal">标准平衡模式</option>
-            <option value="hard">魔鬼高压模式</option>
-        </select>
-        <input type="number" id="fee" class="fee-input" value="8000">
+    
+    <div class="row">
+        <span style="font-size: 12px; font-weight: bold;">学费: ¥<span id="fee-val">8000</span></span>
+        <input type="range" class="fee-slider" id="fee-range" min="2000" max="100000" value="8000" oninput="updateFee(this.value)">
+        <span id="risk-pill" class="status-pill">风险: 安全</span>
     </div>
-    <button class="btn-main" onclick="startRound()">🔔 开始学期结算</button>
-</div>
 
-<div id="modal-overlay" onclick="closeModal()">
-    <div class="modal-content" onclick="event.stopPropagation()" id="modal-body"></div>
+    <button class="btn-main" id="run-btn" onclick="nextRound()" disabled>至少需6教室+6教师才能开学</button>
 </div>
 
 <script src="script.js"></script>

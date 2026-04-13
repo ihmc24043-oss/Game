@@ -165,51 +165,117 @@ function init() {
 function renderCampus() {
     const grid = document.getElementById('campus-grid');
     grid.innerHTML = '';
-    state.slots.forEach((s, i) => {
+
+    state.slots.forEach((slot, i) => {
         const div = document.createElement('div');
-        div.className = 'slot' + (s ? ' built' : '');
-        div.innerHTML = s ? `${s.name}<span class="lv-tag">Lv.${s.lv}</span>` : '空地';
-        div.onclick = () => openBuildModal(i);
+        
+        if (slot && slot.isPart) {
+            // 这是被大建筑占用的右侧格子，应用隐藏样式
+            div.className = 'slot is-part';
+        } else if (slot) {
+            // 正常建筑或大建筑的主格
+            div.className = 'slot built' + (slot.size === 2 ? ' large-parent' : '');
+            div.innerHTML = `
+                <div class="lv-tag">Lv.${slot.lv}</div>
+                <b style="font-size:11px;">${slot.name}</b>
+                <div style="font-size:9px; color:#7f8c8d; margin-top:2px;">
+                    ${slot.study > 0 ? '📚'+Math.floor(slot.study) : ''}
+                </div>
+            `;
+            div.onclick = () => upgradeRoom(i);
+        } else {
+            // 空地
+            div.className = 'slot';
+            div.innerHTML = '<span style="color:#ccc; font-size:18px;">+</span>';
+            div.onclick = () => openBuildModal(i);
+        }
         grid.appendChild(div);
     });
 }
 
+
 function openBuildModal(index) {
-    if(state.slots[index]) {
-        // 如果已建造，执行升级逻辑
-        upgradeRoom(index);
+    if (state.slots[index]) {
+        upgradeRoom(index); // 已有建筑则触发升级
         return;
     }
-    const modal = document.getElementById('modal');
+
     const content = document.getElementById('modal-content');
-    content.innerHTML = '';
-    
-    for (let key in ROOMS) {
-        const r = ROOMS[key];
+    content.innerHTML = ''; // 清空旧列表
+
+    // 遍历所有在 ROOM_DEFS 定义的教室
+    for (let key in ROOM_DEFS) {
+        const r = ROOM_DEFS[key];
+        
+        // 检查大教室是否有足够空间 (不是最后一列且右侧为空)
+        const isRightEdge = (index % 4 === 3);
+        const isRightOccupied = state.slots[index + 1] !== null;
+        const canBuildLarge = !(isRightEdge || isRightOccupied);
+        
+        const isDisable = (r.size === 2 && !canBuildLarge);
+
         content.innerHTML += `
-            <button onclick="buildRoom(${index}, '${key}')" style="padding:10px; border-radius:10px; border:1px solid #ddd; background:#fff;">
-                <b>${r.name}</b><br><span style="font-size:10px; color:#e67e22;">¥${r.cost.toLocaleString()}</span>
-            </button>
-        `;
+            <button onclick="buildRoom(${index}, '${key}')" 
+                ${isDisable ? 'disabled style="opacity:0.4; background:#eee;"' : ''} 
+                style="padding:12px; border:1px solid #ddd; border-radius:10px; background:#fff; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <div style="text-align:left;">
+                    <b style="font-size:14px;">${r.name} ${r.size === 2 ? '↔️' : ''}</b><br>
+                    <span style="font-size:10px; color:#666;">
+                        ${r.study ? '学术+'+r.study : ''} ${r.pressure < 0 ? '压-'+Math.abs(r.pressure) : ''}
+                    </span>
+                </div>
+                <b style="color:#e67e22; font-size:12px;">¥${(r.cost/1000).toFixed(0)}k</b>
+            </button>`;
     }
-    modal.style.display = 'block';
+    
+    document.getElementById('modal').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
 }
 
+
 function buildRoom(index, type) {
-    const room = ROOMS[type];
-    if(state.money >= room.cost) {
+    const room = ROOM_DEFS[type];
+    if (state.money >= room.cost) {
         state.money -= room.cost;
-        state.slots[index] = { ...room, type, lv: 1 };
-        if(type === 'dorm') state.capacity += 50;
-        addLog(`建造了 ${room.name}，花费 ¥${room.cost}`);
+        
+        /* 大型教室合并视觉效果 */
+.slot.large-parent {
+    grid-column: span 2; /* 跨越两列 */
+    background: #fff;
+    border: 2px solid #f1c40f; /* 金色边框突出 */
+    min-height: 80px;
+}
+
+/* 被占用的附属格隐藏 */
+.slot.is-part {
+    display: none; 
+}
+
+/* 弹窗内部滚动条，防止教室太多显示不全 */
+.modal {
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+        
+        // 创建房间实例
+        const newRoom = { ...room, type, lv: 1 };
+        state.slots[index] = newRoom;
+
+        // 如果是大教室，锁定右侧地块
+        if (room.size === 2) {
+            state.slots[index + 1] = { isPart: true, parentIndex: index };
+        }
+
+        addLog(`[建设] ${room.name} 完工！`);
         closeModal();
         renderCampus();
         updateUI();
     } else {
-        alert("校长，咱们账上钱不够了！");
+        alert("校长，资金不足！");
     }
 }
+
 
 function upgradeRoom(index) {
     const s = state.slots[index];

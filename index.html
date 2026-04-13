@@ -3,59 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>传奇校长：交流团资料片</title>
+    <title>传奇校长：终极权力版</title>
     <style>
-        :root { --p-blue: #3498db; --p-gold: #f1c40f; --p-dark: #2c3e50; --p-red: #e74c3c; --p-purple: #9b59b6; --p-green: #2ecc71; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { font-family: -apple-system, sans-serif; background: var(--p-dark); color: #333; }
+        :root { --p-blue: #3498db; --p-gold: #f1c40f; --p-dark: #2c3e50; --p-red: #e74c3c; --p-green: #2ecc71; --p-purple: #9b59b6; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin:0; padding:0; }
+        body { font-family: sans-serif; background: var(--p-dark); color: #333; transition: background 0.5s; }
+        .danger-mode { background: #600 !important; } /* 压力过大时的红屏闪烁 */
+
+        /* 顶部看板 */
+        .header { background: rgba(0,0,0,0.8); color: white; display: grid; grid-template-columns: repeat(3, 1fr); padding: 15px; border-bottom: 2px solid var(--p-gold); sticky; top:0; z-index:100; font-size: 12px; }
+        .stat-val { color: var(--p-gold); font-weight: bold; display: block; font-size: 14px; }
+
+        /* 内容区 */
+        .container { background: #f4f7f6; padding: 15px; border-radius: 25px 25px 0 0; min-height: 100vh; padding-bottom: 250px; }
         
-        /* 看板 */
-        .header { background: var(--p-dark); color: white; display: grid; grid-template-columns: repeat(3, 1fr); padding: 15px; border-bottom: 2px solid var(--p-gold); gap: 8px; }
-        .stat-label { font-size: 10px; opacity: 0.7; }
-        .stat-val { color: var(--p-gold); font-weight: bold; font-size: 13px; }
+        /* 24地块网格 */
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
+        .slot { aspect-ratio: 1; background: #ddd; border-radius: 12px; border: 2px dashed #bbb; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; font-size: 10px; overflow: hidden; }
+        .slot.built { background: white; border: 2px solid var(--p-blue); border-style: solid; }
+        .lv-tag { position: absolute; top: 0; right: 0; background: var(--p-red); color: white; padding: 2px 4px; font-size: 9px; }
 
-        .container { background: #f4f7f6; padding: 15px; border-radius: 20px 20px 0 0; min-height: 100vh; padding-bottom: 220px; }
-        .section-title { border-left: 4px solid var(--p-blue); padding-left: 10px; font-size: 15px; margin: 10px 0 15px; font-weight: bold; }
-
-        /* 网格 */
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .slot { aspect-ratio: 1; background: #e2e5e9; border-radius: 12px; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: 0.2s; }
-        .slot.built { background: white; border: 2px solid var(--p-blue); border-style: solid; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .lv-tag { position: absolute; top: -5px; right: -5px; background: var(--p-red); color: white; padding: 1px 5px; border-radius: 5px; font-size: 9px; font-weight: bold; }
-        .slot-name { font-size: 10px; font-weight: bold; text-align: center; line-height: 1.1; }
-
-        /* 底部 */
-        .footer { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px 15px 35px; border-radius: 20px 20px 0 0; box-shadow: 0 -8px 25px rgba(0,0,0,0.15); z-index: 100; }
-        .ctrl-btns { display: flex; gap: 10px; margin-bottom: 12px; }
-        .btn-act { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; font-size: 13px; color: white; }
-        .btn-research { background: var(--p-purple); }
-        .btn-next { background: var(--p-dark); color: var(--p-gold); width: 100%; padding: 16px; border: none; border-radius: 18px; font-size: 16px; font-weight: bold; }
-
-        /* 动态注入样式：交流团警告 */
-        .event-card { background: linear-gradient(135deg, #fff, #fff5f5); border: 2px solid var(--p-red); border-radius: 15px; padding: 15px; margin-top: 10px; }
+        /* 底部 UI */
+        .footer { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.3); z-index: 1000; }
+        .menu-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+        .menu-btn { padding: 10px 5px; border-radius: 10px; border: none; font-size: 11px; font-weight: bold; color: white; }
+        .btn-teach { background: var(--p-blue); }
+        .btn-res { background: var(--p-purple); }
+        .btn-exchange { background: #e67e22; }
+        .btn-luxury { background: #2c3e50; }
+        .btn-next { width: 100%; padding: 15px; background: #000; color: var(--p-gold); border: none; border-radius: 15px; font-size: 18px; font-weight: bold; }
+        
+        /* 弹窗中的滚动列表 */
+        .list-item { background: #f8f9fa; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin-bottom: 8px; }
     </style>
 </head>
-<body>
+<body id="game-body">
 
 <div class="header">
-    <div class="stat-item"><span class="stat-label">经费</span><span class="stat-val" id="money">¥100w</span></div>
-    <div class="stat-item"><span class="stat-label">总产出</span><span class="stat-val" id="lessons" style="color:var(--p-green)">0</span></div>
-    <div class="stat-item"><span class="stat-label">压力</span><span class="stat-val" id="pressure">0%</span></div>
-    <div class="stat-item"><span class="stat-label">声望</span><span class="stat-val" id="rep">60</span></div>
-    <div class="stat-item"><span class="stat-label">学期</span><span class="stat-val" id="round">1</span></div>
-    <div class="stat-item"><span class="stat-label">研究</span><span class="stat-val" id="res-lv" style="color:var(--p-purple)">Lv.0</span></div>
+    <div>经费: <span class="stat-val" id="money">¥100.0w</span></div>
+    <div>压力: <span class="stat-val" id="pressure">0%</span></div>
+    <div>声望: <span class="stat-val" id="rep">60</span></div>
+    <div>学生: <span class="stat-val" id="stu-count">0/0</span></div>
+    <div>教师: <span class="stat-val" id="tea-count">0</span></div>
+    <div>学期: <span class="stat-val" id="round">1</span></div>
 </div>
 
 <div class="container">
-    <div class="section-title">校园全景规划</div>
-    <div id="event-zone"></div> <div class="grid" id="grid"></div>
+    <div id="event-box"></div>
+    <div class="grid" id="grid"></div>
 </div>
 
 <div class="footer">
-    <div class="ctrl-btns">
-        <button class="btn-act btn-research" onclick="researchMenu()">🧪 科研中心</button>
+    <div class="menu-row">
+        <button class="menu-btn btn-teach" onclick="openTeacherStore()">👨‍🏫 招聘</button>
+        <button class="menu-btn btn-res" onclick="openResearch()">🔬 研究</button>
+        <button class="menu-btn btn-exchange" onclick="openExchange()">🌍 交流</button>
+        <button class="menu-btn btn-luxury" onclick="openLuxury()">💎 奢侈</button>
     </div>
-    <button class="btn-next" onclick="nextRound()">🔔 结束学期 · 进入结算</button>
+    <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+        <select id="teach-style" style="flex:1; padding: 5px; border-radius: 5px;">
+            <option value="easy">佛系教育 (低压/少学)</option>
+            <option value="normal" selected>标准教育 (平衡)</option>
+            <option value="hard">魔鬼训练 (高压/极速)</option>
+        </select>
+        <input type="number" id="tuition" value="5000" placeholder="学费" style="width: 80px; padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+    </div>
+    <button class="btn-next" onclick="nextRound()">🔔 结束学期结算</button>
 </div>
 
 <script src="script.js"></script>

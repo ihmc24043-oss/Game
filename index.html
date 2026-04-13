@@ -531,6 +531,72 @@ nextRound = function() {
         }
     }, 500);
 })();
+/* --- 强制找回消失的按钮与模式补丁 --- */
+(function() {
+    // 1. 强制生成控制台容器 (如果它消失了)
+    let controls = document.querySelector('.controls');
+    if (!controls) {
+        controls = document.createElement('div');
+        controls.className = 'controls';
+        document.body.appendChild(controls);
+    }
+
+    // 2. 强制找回模式按钮 (佛系、标准、应试)
+    let modeToggles = document.querySelector('.mode-toggles');
+    if (!modeToggles) {
+        modeToggles = document.createElement('div');
+        modeToggles.className = 'mode-toggles';
+        modeToggles.style.cssText = "display:flex; gap:10px; margin-bottom:10px; justify-content:center;";
+        modeToggles.innerHTML = `
+            <button class="btn-mode active" onclick="setMode(1)">佛系教育</button>
+            <button class="btn-mode" onclick="setMode(2)">标准模式</button>
+            <button class="btn-mode" onclick="setMode(3)">应试魔鬼</button>
+        `;
+        controls.appendChild(modeToggles);
+    }
+
+    // 3. 强制找回“结束本学期”按钮
+    let nextBtn = document.querySelector('.btn-next');
+    if (!nextBtn) {
+        nextBtn = document.createElement('button');
+        nextBtn.className = 'btn-next';
+        nextBtn.innerHTML = "🔔 结束本学期 / 进入下一天";
+        nextBtn.onclick = function() { nextRound(); }; // 绑定结算函数
+        controls.appendChild(nextBtn);
+    }
+
+    // 4. 重写佛系模式逻辑：确保点击就能减压
+    window.setMode = function(m) {
+        state.mode = m;
+        document.querySelectorAll('.btn-mode').forEach((b, i) => {
+            b.className = (i + 1 === m) ? 'btn-mode active' : 'btn-mode';
+        });
+        if(m === 1) {
+            addLog("🍃 已切换至佛系教育：学生压力每回合将大幅度下降。");
+        }
+    };
+
+    // 5. 注入减压逻辑到结算函数
+    const oldNextRound = nextRound;
+    window.nextRound = function() {
+        if (state.mode === 1) {
+            state.pressure = Math.max(0, state.pressure - 25); // 佛系模式每回合多减25%压力
+            addLog("🧘 佛系加成：学生们在冥想中释放了压力。");
+        }
+        oldNextRound(); // 执行原有的结算逻辑
+        updateUI();
+    };
+
+    // 6. 强制修正 CSS 遮挡问题
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .controls { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px 0; z-index: 9999 !important; border-top: 2px solid #ddd; display: flex; flex-direction: column; align-items: center; }
+        .btn-next { width: 90%; padding: 15px; background: #2c3e50; color: #f1c40f; border: none; border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .btn-mode { padding: 6px 12px; border-radius: 20px; border: 1px solid #ccc; background: white; cursor: pointer; }
+        .btn-mode.active { background: #3498db; color: white; border-color: #3498db; }
+    `;
+    document.head.appendChild(style);
+})();
 
 </script>
 </body>

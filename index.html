@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>传奇校长：终极模拟器</title>
+    <title>传奇校长：终极模拟器 (完整整合版)</title>
     <style>
         :root { --p-blue: #3498db; --p-red: #e74c3c; --p-gold: #f1c40f; --p-dark: #2c3e50; --p-green: #27ae60; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 120px; user-select: none; }
@@ -14,14 +14,16 @@
 
         /* 24地块网格 */
         .campus-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; background: #ddd; margin: 10px; border-radius: 12px; }
-        .slot { aspect-ratio: 1/1; background: #eee; border: 2px dashed #bbb; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #777; overflow: hidden; position: relative; }
-        .slot.built { border: 2px solid var(--p-blue); background: white; color: #333; }
+        .slot { aspect-ratio: 1/1; background: #eee; border: 2px dashed #bbb; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #777; overflow: hidden; position: relative; text-align: center; }
+        .slot.built { border: 2px solid var(--p-blue); background: white; color: #333; font-weight: bold; }
+        .slot.large { grid-column: span 2; aspect-ratio: auto; min-height: 85px; border: 2px solid var(--p-gold); }
+        .slot.hidden { display: none; }
         .lv-tag { position: absolute; top: 2px; right: 2px; background: var(--p-blue); color: white; padding: 1px 4px; border-radius: 4px; font-size: 8px; }
 
         /* 面板设计 */
         .section-title { font-size: 16px; font-weight: bold; margin: 15px 10px 5px; border-left: 4px solid var(--p-blue); padding-left: 10px; display: flex; justify-content: space-between; align-items: center; }
         .scroll-row { display: flex; overflow-x: auto; gap: 10px; padding: 5px 10px 15px; }
-        .card { min-width: 140px; background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); flex-shrink: 0; border: 1px solid #eee; }
+        .card { min-width: 140px; background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); flex-shrink: 0; border: 1px solid #eee; text-align: center; }
         
         /* 底部控制中心 */
         .controls { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; padding: 10px 0; display: flex; flex-direction: column; align-items: center; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); z-index: 999; }
@@ -33,25 +35,27 @@
         /* 日志窗口 */
         #log { background: #2c3e50; color: #2ecc71; padding: 10px; height: 80px; overflow-y: auto; font-family: monospace; font-size: 10px; margin: 0 10px; border-radius: 8px; }
         
-        /* 弹窗 */
-        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 85%; padding: 20px; border-radius: 20px; z-index: 2000; display: none; box-shadow: 0 0 50px rgba(0,0,0,0.3); }
+        /* 弹窗升级 */
+        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 85%; max-height: 80vh; padding: 20px; border-radius: 20px; z-index: 2000; display: none; box-shadow: 0 0 50px rgba(0,0,0,0.3); overflow-y: auto; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1999; display: none; }
+        .build-item { padding: 10px; border-radius: 10px; border: 1px solid #ddd; background: #fff; text-align: left; }
+        .cat-title { grid-column: span 2; font-size: 12px; color: #888; margin-top: 10px; background: #f8f9fa; padding: 2px 8px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <div class="stats-bar">
-    <div>资金<span id="money">¥1,000,000</span></div>
+    <div>资金<span id="money">¥1.0M</span></div>
     <div>学生压力<span id="pressure">0%</span></div>
-    <div>学校声望<span id="reputation">50</span></div>
-    <div>学生人数<span id="students">0</span></div>
-    <div>教学质量<span id="study">0</span></div>
-    <div>当前学期<span id="round">1</span></div>
+    <div>声望<span id="reputation">60</span></div>
+    <div>学生<span id="students">20/20</span></div>
+    <div>学期<span id="round">1</span></div>
+    <div>加成<span id="buff">100%</span></div>
 </div>
 
-<div id="log">系统：欢迎，校长。你需要至少6间教室和6名老师才能开始第一个学期。</div>
+<div id="log">系统：欢迎，校长。你需要至少6间教室和6名老师才能开始。</div>
 
-<div class="section-title">校园规划 (24地块) <span style="font-size:10px; color:#999;">点击空地建造</span></div>
+<div class="section-title">校园规划 (24地块) <span style="font-size:10px; color:#999;">点击空地建造/点击建筑升级</span></div>
 <div class="campus-grid" id="campus-grid"></div>
 
 <div class="section-title">人才市场 <button onclick="refreshMarket()" style="font-size:10px;">刷新</button></div>
@@ -66,21 +70,15 @@
 <div class="section-title">校长办公室 (Principal Office)</div>
 <div class="scroll-row">
     <div class="card">
-        <h4>调整学费</h4>
+        <h4>学费调整</h4>
         <input type="range" id="fee-range" min="1000" max="100000" value="5000" style="width:100%">
         <p id="fee-val">¥5,000/期</p>
     </div>
-    <div class="card">
-        <h4>向家长索要赞助</h4>
-        <button onclick="askParents()">发起筹款</button>
-    </div>
-    <div class="card" id="pr-card">
-        <h4>媒体公关</h4>
-        <button onclick="doPR()">花费 ¥50,000</button>
-    </div>
+    <div class="card"><h4>家长捐赠</h4><button onclick="askParents()">发起筹款</button></div>
+    <div class="card"><h4>媒体公关</h4><button onclick="doPR()">花费 ¥50k</button></div>
 </div>
 
-<div class="section-title">校长奢侈品 (Principal Happy)</div>
+<div class="section-title">校长奢侈品 (Happy)</div>
 <div class="scroll-row" id="luxury-panel"></div>
 
 <div class="controls">
@@ -89,39 +87,53 @@
         <button class="btn-mode" id="mode-2" onclick="setMode(2)">标准模式</button>
         <button class="btn-mode" id="mode-3" onclick="setMode(3)">应试魔鬼</button>
     </div>
-    <button class="btn-next" onclick="nextRound()">🔔 结束本学期 / 进入下一天</button>
+    <button class="btn-next" onclick="nextRound()">🔔 结束学期 / 进入下一天</button>
 </div>
 
-<div class="overlay" id="overlay"></div>
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
 <div class="modal" id="modal">
-    <h3 id="modal-title">建造教室</h3>
+    <h3 id="modal-title">建造设施</h3>
     <div id="modal-content" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"></div>
-    <button onclick="closeModal()" style="width:100%; margin-top:20px; padding:10px; background:#ccc; border:none; border-radius:10px;">取消</button>
+    <button onclick="closeModal()" style="width:100%; margin-top:20px; padding:12px; background:#eee; border:none; border-radius:10px; font-weight:bold;">关闭</button>
 </div>
 
 <script>
-// --- 游戏配置数据 ---
-const ROOMS = {
-    computer: { name: "电脑室", cost: 80000, study: 15, pressure: 5 },
-    kitchen: { name: "家政厨室", cost: 50000, study: 8, pressure: -5 },
-    handcraft: { name: "手工教室", cost: 50000, study: 10, pressure: -2 },
-    music: { name: "音乐室", cost: 70000, study: 12, pressure: -10 },
-    hall: { name: "大礼堂", cost: 150000, study: 5, reputation: 10 },
-    teacher: { name: "教师休息室", cost: 60000, morale: 20 },
-    clinic: { name: "心理咨询室", cost: 100000, pressure: -20 },
-    dorm: { name: "新宿舍", cost: 120000, capacity: 50 }
+// --- 整合版数据库 ---
+const ROOM_DATABASE = {
+    "核心教学": {
+        std_class: { name: "标准教室", cost: 30000, study: 10, pressure: 5, size: 1 },
+        lang_lab: { name: "语言实验室", cost: 60000, study: 18, pressure: 3, size: 1 },
+        math_sem: { name: "数学研讨室", cost: 55000, study: 22, pressure: 8, size: 1 }
+    },
+    "科学技术": {
+        phy_lab: { name: "物理实验室", cost: 85000, study: 25, pressure: 10, size: 1 },
+        chem_lab: { name: "化学实验室", cost: 90000, study: 28, pressure: 12, size: 1 },
+        comp_lab: { name: "计算机房", cost: 120000, study: 35, pressure: 5, size: 1 },
+        maker_space: { name: "创客空间", cost: 150000, study: 45, pressure: -5, size: 1 }
+    },
+    "艺术体育": {
+        music_room: { name: "音乐教室", cost: 85000, study: 15, pressure: -15, size: 1 },
+        dance_studio: { name: "舞蹈教室", cost: 100000, study: 20, pressure: -10, size: 1 },
+        gym: { name: "体育馆", cost: 400000, study: 15, pressure: -25, size: 2 },
+        pool: { name: "游泳馆", cost: 450000, study: 10, pressure: -20, size: 2 }
+    },
+    "高级空间": {
+        library: { name: "图书馆", cost: 250000, study: 40, pressure: -10, size: 2 },
+        auditorium: { name: "大礼堂", cost: 500000, study: 5, reputation: 50, size: 2 },
+        dorm: { name: "豪华宿舍", cost: 150000, capacity: 60, size: 1 }
+    }
 };
+
+const SKILLS = [
+    { id: 'speech', name: "演讲大师", cost: 50000, desc: "提高筹款成功率" },
+    { id: 'shield', name: "厚脸皮", cost: 80000, desc: "降低封口费金额" },
+    { id: 'media', name: "媒体控制", cost: 120000, desc: "政府补助+50%" }
+];
 
 const TOURS = [
     { name: "硅谷科技团", cost: 200000, study: 50, rep: 20 },
     { name: "伦敦艺术展", cost: 150000, study: 30, rep: 40 },
     { name: "非洲志愿者", cost: 100000, study: 10, rep: 80 }
-];
-
-const SKILLS = [
-    { id: 'speech', name: "演讲大师", cost: 50000, desc: "提高筹款成功率" },
-    { id: 'shield', name: "厚脸皮", cost: 80000, desc: "降低封口费金额" },
-    { id: 'media', name: "媒体控制", cost: 120000, desc: "政府更容易给钱" }
 ];
 
 const LUXURY = [
@@ -131,409 +143,215 @@ const LUXURY = [
 
 // --- 游戏状态 ---
 let state = {
-    money: 1000000,
-    pressure: 0,
-    reputation: 50,
-    students: 20,
-    capacity: 20,
-    round: 1,
-    mode: 1, // 1:Low, 2:Mid, 3:High
-    fee: 5000,
-    slots: Array(24).fill(null),
-    teachers: [],
-    skills: [],
-    subjectBonus: { math: 1, music: 1, science: 1 },
-    isGameOver: false
+    money: 1000000, pressure: 0, reputation: 60, students: 20, capacity: 20,
+    round: 1, mode: 1, fee: 5000, buff: 1.0,
+    slots: Array(24).fill(null), teachers: [], skills: []
 };
 
-// --- 初始化系统 ---
 function init() {
-    renderCampus();
+    renderGrid();
     refreshMarket();
     renderResearch();
     renderTours();
     renderLuxury();
     updateUI();
-    
     document.getElementById('fee-range').oninput = function() {
         state.fee = parseInt(this.value);
         document.getElementById('fee-val').innerText = `¥${state.fee.toLocaleString()}/期`;
     };
 }
 
-// 24地块渲染
-function renderCampus() {
+// 24地块逻辑整合
+function renderGrid() {
     const grid = document.getElementById('campus-grid');
     grid.innerHTML = '';
-
-    state.slots.forEach((slot, i) => {
-        const div = document.createElement('div');
-        
-        if (slot && slot.isPart) {
-            // 这是被大建筑占用的右侧格子，应用隐藏样式
-            div.className = 'slot is-part';
-        } else if (slot) {
-            // 正常建筑或大建筑的主格
-            div.className = 'slot built' + (slot.size === 2 ? ' large-parent' : '');
-            div.innerHTML = `
-                <div class="lv-tag">Lv.${slot.lv}</div>
-                <b style="font-size:11px;">${slot.name}</b>
-                <div style="font-size:9px; color:#7f8c8d; margin-top:2px;">
-                    ${slot.study > 0 ? '📚'+Math.floor(slot.study) : ''}
-                </div>
-            `;
-            div.onclick = () => upgradeRoom(i);
+    state.slots.forEach((s, i) => {
+        const d = document.createElement('div');
+        if(s && s.isPart) { d.className = 'slot hidden'; }
+        else if(s) {
+            d.className = 'slot built' + (s.size == 2 ? ' large' : '');
+            d.innerHTML = `<span class="lv-tag">Lv.${s.lv}</span><b>${s.name}</b>`;
+            d.onclick = () => openUpgradeModal(i);
         } else {
-            // 空地
-            div.className = 'slot';
-            div.innerHTML = '<span style="color:#ccc; font-size:18px;">+</span>';
-            div.onclick = () => openBuildModal(i);
+            d.className = 'slot';
+            d.innerHTML = '+';
+            d.onclick = () => openBuildModal(i);
         }
-        grid.appendChild(div);
+        grid.appendChild(d);
     });
 }
 
-
-function openBuildModal(index) {
-    if (state.slots[index]) {
-        upgradeRoom(index); // 已有建筑则触发升级
-        return;
-    }
-
+function openBuildModal(idx) {
     const content = document.getElementById('modal-content');
-    content.innerHTML = ''; // 清空旧列表
-
-    // 遍历所有在 ROOM_DEFS 定义的教室
-    for (let key in ROOM_DEFS) {
-        const r = ROOM_DEFS[key];
-        
-        // 检查大教室是否有足够空间 (不是最后一列且右侧为空)
-        const isRightEdge = (index % 4 === 3);
-        const isRightOccupied = state.slots[index + 1] !== null;
-        const canBuildLarge = !(isRightEdge || isRightOccupied);
-        
-        const isDisable = (r.size === 2 && !canBuildLarge);
-
-        content.innerHTML += `
-            <button onclick="buildRoom(${index}, '${key}')" 
-                ${isDisable ? 'disabled style="opacity:0.4; background:#eee;"' : ''} 
-                style="padding:12px; border:1px solid #ddd; border-radius:10px; background:#fff; display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                <div style="text-align:left;">
-                    <b style="font-size:14px;">${r.name} ${r.size === 2 ? '↔️' : ''}</b><br>
-                    <span style="font-size:10px; color:#666;">
-                        ${r.study ? '学术+'+r.study : ''} ${r.pressure < 0 ? '压-'+Math.abs(r.pressure) : ''}
-                    </span>
-                </div>
-                <b style="color:#e67e22; font-size:12px;">¥${(r.cost/1000).toFixed(0)}k</b>
-            </button>`;
-    }
-    
-    document.getElementById('modal').style.display = 'block';
-    document.getElementById('overlay').style.display = 'block';
-}
-
-
-function buildRoom(index, type) {
-    const room = ROOM_DEFS[type];
-    if (state.money >= room.cost) {
-        state.money -= room.cost;
-        
-        /* 大型教室合并视觉效果 */
-.slot.large-parent {
-    grid-column: span 2; /* 跨越两列 */
-    background: #fff;
-    border: 2px solid #f1c40f; /* 金色边框突出 */
-    min-height: 80px;
-}
-
-
-/* 被占用的附属格隐藏 */
-.slot.is-part {
-    display: none; 
-}
-
-/* 弹窗内部滚动条，防止教室太多显示不全 */
-.modal {
-    max-height: 75vh;
-    overflow-y: auto;
-}
-
-        
-        // 创建房间实例
-        const newRoom = { ...room, type, lv: 1 };
-        state.slots[index] = newRoom;
-
-        // 如果是大教室，锁定右侧地块
-        if (room.size === 2) {
-            state.slots[index + 1] = { isPart: true, parentIndex: index };
+    document.getElementById('modal-title').innerText = "建造新设施";
+    content.innerHTML = '';
+    for (let cat in ROOM_DATABASE) {
+        content.innerHTML += `<div class="cat-title">${cat}</div>`;
+        for (let key in ROOM_DATABASE[cat]) {
+            let r = ROOM_DATABASE[cat][key];
+            let canFit = !(r.size == 2 && (idx % 4 == 3 || state.slots[idx+1]));
+            content.innerHTML += `
+                <button class="build-item" onclick="build(${idx},'${cat}','${key}')" ${!canFit?'disabled style="opacity:0.3"':''}>
+                    <b>${r.name} ${r.size==2?'(双格)':''}</b><br>
+                    <span style="color:#e67e22;font-size:10px;">¥${r.cost.toLocaleString()}</span>
+                </button>`;
         }
-
-        addLog(`[建设] ${room.name} 完工！`);
-        closeModal();
-        renderCampus();
-        updateUI();
-    } else {
-        alert("校长，资金不足！");
     }
+    showModal();
 }
 
+function build(idx, cat, key) {
+    let r = ROOM_DATABASE[cat][key];
+    if(state.money >= r.cost) {
+        state.money -= r.cost;
+        state.slots[idx] = { ...r, lv: 1, typeKey: key, catKey: cat };
+        if(r.size == 2) state.slots[idx+1] = { isPart: true, parent: idx };
+        if(r.capacity) state.capacity += r.capacity;
+        addLog(`成功建造：${r.name}`);
+        closeModal(); renderGrid(); updateUI();
+    } else alert("经费不足！");
+}
 
-function upgradeRoom(index) {
-    const s = state.slots[index];
+function openUpgradeModal(idx) {
+    let s = state.slots[idx];
+    if(s.isPart) { idx = s.parent; s = state.slots[idx]; }
     const upCost = Math.floor(s.cost * 1.5 * s.lv);
-    if(confirm(`升级 ${s.name} 到 Lv.${s.lv + 1} 需要 ¥${upCost.toLocaleString()}，确定吗？`)) {
-        if(state.money >= upCost) {
-            state.money -= upCost;
-            s.lv++;
-            s.study *= 1.3;
-            addLog(`升级了 ${s.name}，当前等级 Lv.${s.lv}`);
-            renderCampus();
-            updateUI();
-        }
-    }
+    const content = document.getElementById('modal-content');
+    document.getElementById('modal-title').innerText = "设施管理";
+    content.innerHTML = `
+        <div style="grid-column: span 2; text-align:center; padding:20px;">
+            <h4>${s.name} (等级 ${s.lv})</h4>
+            <p>教学质量: ${Math.floor(s.study)}</p>
+            <button onclick="upgrade(${idx}, ${upCost})" style="width:100%; padding:15px; background:var(--p-gold); border:none; border-radius:10px; font-weight:bold;">
+                支付 ¥${upCost.toLocaleString()} 升级
+            </button>
+        </div>
+    `;
+    showModal();
 }
 
-// 老师系统
-function refreshMarket() {
-    const row = document.getElementById('teacher-market');
-    row.innerHTML = '';
-    const names = ["张强", "美玲", "Dr.王", "Sarah", "老李", "赵博"];
-    for(let i=0; i<4; i++) {
-        let salary = 2000 + Math.floor(Math.random()*2000);
-        let power = Math.floor(salary / 100);
-        row.innerHTML += `
-            <div class="card">
-                <h4>${names[Math.floor(Math.random()*6)]}</h4>
-                <p>月薪: ¥${salary}</p>
-                <p>能力: ${power}</p>
-                <button onclick="hireTeacher('${names[i]}', ${salary}, ${power})">聘用</button>
-            </div>
-        `;
-    }
+function upgrade(idx, cost) {
+    if(state.money >= cost) {
+        state.money -= cost;
+        state.slots[idx].lv++;
+        state.slots[idx].study *= 1.3;
+        addLog(`${state.slots[idx].name} 升级到了 Lv.${state.slots[idx].lv}`);
+        closeModal(); renderGrid(); updateUI();
+    } else alert("资金不足！");
 }
 
-function hireTeacher(n, s, p) {
-    state.teachers.push({ name: n, salary: s, power: p });
-    addLog(`聘请了 ${n} 老师，月薪 ¥${s}`);
-    updateUI();
-}
-
-// 结束学期逻辑 (核心)
+// 核心结算逻辑
 function nextRound() {
-    // 门槛检查
-    const builtRooms = state.slots.filter(s => s !== null).length;
-    if(builtRooms < 6 || state.teachers.length < 6) {
-        alert("【无法开学】你至少需要 6 间教室和 6 名老师！");
-        return;
+    const builtCount = state.slots.filter(s => s && !s.isPart).length;
+    if(builtCount < 6 || state.teachers.length < 6) {
+        return alert("【无法开业】你至少需要6间教室和6名老师！");
     }
 
-    addLog(`>>> 第 ${state.round} 学期结算开始 <<<`);
-
-    // 计算教学力与压力
-    let baseStudy = state.teachers.reduce((sum, t) => sum + t.power, 0);
-    let roomStudy = state.slots.reduce((sum, s) => sum + (s ? (s.study || 0) : 0), 0);
-    let roomPressure = state.slots.reduce((sum, s) => sum + (s ? (s.pressure || 0) : 0), 0);
-
-    let modeMult = [0.5, 1, 2.5][state.mode - 1]; // 模式影响
-    let currentStudy = (baseStudy + roomStudy) * modeMult;
-    let currentPressure = (roomPressure + (currentStudy/4)) * modeMult;
-
-    state.pressure = Math.max(0, Math.min(100, state.pressure + currentPressure));
+    // 计算
+    let tPower = state.teachers.reduce((s, t) => s + t.power, 0);
+    let rStudy = state.slots.reduce((s, r) => s + (r && r.study ? r.study : 0), 0);
+    let rPress = state.slots.reduce((s, r) => s + (r && r.pressure ? r.pressure : 0), 0);
     
-    // 财务
+    let modeMult = [0.5, 1, 2.5][state.mode-1];
+    let studyEff = (tPower + rStudy) * modeMult * state.buff;
+    let pressEff = (rPress + (studyEff/5)) * modeMult;
+
+    state.pressure = Math.max(0, Math.min(100, state.pressure + pressEff));
+    state.reputation += (studyEff / 60);
+    
+    // 财务结算
     let income = state.students * state.fee;
-    let salaries = state.teachers.reduce((sum, t) => sum + t.salary, 0);
-    let govHelp = 0;
-    if(state.round % 1 === 0) { // 每回合政府拨款
-        govHelp = state.reputation * 500;
-        if(state.skills.includes('media')) govHelp *= 1.5;
-        state.money += govHelp;
-    }
+    let salaries = state.teachers.reduce((s, t) => s + t.salary, 0);
+    let subsidy = state.reputation * (state.skills.includes('media') ? 750 : 500);
     
-    state.money += (income - salaries);
-    state.reputation += (currentStudy / 50);
+    state.money += (income + subsidy - salaries);
+    
+    // 事件判定
+    if(state.pressure > 85 && Math.random() > 0.6) handleTragedy();
+    if((state.fee > 80000 || state.reputation < 15) && Math.random() > 0.7) handleGovCheck();
 
-    // 悲剧判定 (自杀)
-    if(state.pressure > 85) {
-        if(Math.random() > 0.6) {
-            handleTragedy();
-        }
-    }
-
-    // 检查机制
-    if(state.fee > 80000 || state.reputation < 10) {
-        if(Math.random() > 0.7) handleGovCheck();
-    }
-
-    // 招生与毕业
-    if(state.round % 4 === 0) { // 每4回合毕业一批
+    // 招生毕业
+    if(state.round % 4 === 0) {
         let grads = Math.floor(state.students * 0.8);
-        let donation = grads * (currentStudy * 10);
-        state.money += donation;
+        state.money += grads * (studyEff * 8);
         state.students -= grads;
-        addLog(`🎓 毕业季：${grads}名学生毕业，捐赠 ¥${donation.toLocaleString()}`);
+        addLog(`🎓 学期末：${grads} 名学生毕业。`);
     }
+    state.students = Math.min(state.capacity, state.students + Math.floor(state.reputation/3));
     
-    let newStudents = Math.floor(state.reputation / 2);
-    state.students = Math.min(state.capacity, state.students + newStudents);
-
     state.round++;
     updateUI();
-    if(state.money < 0) { alert("破产了！"); location.reload(); }
+    if(state.money < 0) { alert("你破产了，校长！"); location.reload(); }
 }
 
+// 基础辅助功能
+function refreshMarket() {
+    const row = document.getElementById('teacher-market'); row.innerHTML = '';
+    const names = ["Sarah", "李老师", "张博士", "美玲", "王教授", "老陈"];
+    for(let i=0; i<4; i++){
+        let sal = 2500 + Math.floor(Math.random()*2500);
+        let pwr = Math.floor(sal / 100);
+        let n = names[Math.floor(Math.random()*names.length)];
+        row.innerHTML += `<div class="card"><h4>${n}</h4><p>月薪:¥${sal}</p><p>能力:${pwr}</p><button onclick="hireTeacher('${n}',${sal},${pwr})">聘用</button></div>`;
+    }
+}
+function hireTeacher(n,s,p) { state.teachers.push({name:n,salary:s,power:p}); addLog(`聘请了 ${n}`); updateUI(); }
 function handleTragedy() {
     let bribe = state.skills.includes('shield') ? 50000 : 200000;
-    if(confirm(`🚨 发生学生自杀事件！支付 ¥${bribe.toLocaleString()} 给媒体封口吗？`)) {
-        state.money -= bribe;
-        addLog("🤐 丑闻已被压下，但声望受损。");
-        state.reputation -= 10;
-    } else {
-        state.reputation -= 60;
-        addLog("📢 媒体曝光！学校声望暴跌！");
-    }
+    if(confirm(`🚨 学生压力爆表！支付 ¥${bribe.toLocaleString()} 压下丑闻？`)) {
+        state.money -= bribe; state.reputation -= 10; addLog("丑闻已被封锁。");
+    } else { state.reputation -= 60; addLog("负面新闻曝光！声望暴跌！"); }
 }
-
 function askParents() {
-    let amt = prompt("你要向每位家长收多少钱？(输入数字)", "10000");
+    let amt = parseInt(prompt("赞助费金额：", "10000"));
     if(!amt) return;
-    amt = parseInt(amt);
-    if(amt > 100000) {
-        alert("家长觉得你疯了，直接举报了你！");
-        handleGovCheck();
-    } else {
-        let success = state.skills.includes('speech') ? 0.8 : 0.4;
-        if(Math.random() < success) {
-            let total = amt * state.students;
-            state.money += total;
-            addLog(`💰 筹款成功！获得 ¥${total.toLocaleString()}`);
-        } else {
-            addLog("❌ 家长拒绝了你的无理要求。");
-            state.reputation -= 15;
-        }
-    }
+    if(Math.random() < (state.skills.includes('speech') ? 0.8 : 0.4)) {
+        state.money += amt * state.students; addLog("筹款成功！");
+    } else { state.reputation -= 15; addLog("筹款失败且被举报。"); }
     updateUI();
 }
-
 function handleGovCheck() {
-    alert("🚨 政府派人来突击检查了！");
-    if(state.pressure > 70 || state.fee > 50000) {
-        let fine = 100000;
-        state.money -= fine;
-        state.reputation -= 30;
-        addLog(`⚠️ 检查未通过，罚款 ¥${fine}`);
-    } else {
-        addLog("✅ 检查通过。");
+    alert("🚨 政府突击检查！");
+    if(state.pressure > 75 || state.fee > 60000) {
+        state.money -= 150000; state.reputation -= 20; addLog("检查未通过，巨额罚款！");
+    } else addLog("有惊无险，检查通过。");
+}
+function renderResearch() {
+    const row = document.getElementById('research-panel');
+    SKILLS.forEach(s => row.innerHTML += `<div class="card"><h4>${s.name}</h4><p>${s.desc}</p><button onclick="buySkill('${s.id}',${s.cost})">研制 ¥${s.cost/1000}k</button></div>`);
+}
+function buySkill(id, cost) {
+    if(state.money >= cost && !state.skills.includes(id)) {
+        state.money -= cost; state.skills.push(id); addLog(`技能解锁：${id}`); updateUI();
     }
 }
-
-// --- 辅助 UI 函数 ---
+function renderTours() {
+    const row = document.getElementById('tour-panel');
+    TOURS.forEach(t => row.innerHTML += `<div class="card"><h4>${t.name}</h4><p>¥${t.cost/1000}k</p><button onclick="goTour(${t.cost},${t.study},${t.rep})">启程</button></div>`);
+}
+function goTour(c,s,r) {
+    if(state.money >= c) { state.money -= c; state.reputation += r; state.pressure = Math.max(0, state.pressure - 20); addLog("研学归来，全校士气大振。"); updateUI(); }
+}
+function renderLuxury() {
+    const row = document.getElementById('luxury-panel');
+    LUXURY.forEach(l => row.innerHTML += `<div class="card"><h4>${l.name}</h4><button onclick="buyLux('${l.name}',${l.cost})">¥${l.cost/1000}k</button></div>`);
+}
+function buyLux(n,c) { if(state.money >= c) { state.money -= c; addLog(`校长购买了 ${n}，非常享受！`); updateUI(); } }
+function doPR() { if(state.money >= 50000) { state.money -= 50000; state.reputation += 20; updateUI(); addLog("公关活动提升了学校名气。"); } }
+function setMode(m) { state.mode = m; document.querySelectorAll('.btn-mode').forEach((b,i) => b.className = (i+1===m)?'btn-mode active':'btn-mode'); }
+function addLog(msg) { const l = document.getElementById('log'); l.innerHTML = `> ${msg}<br>` + l.innerHTML; }
 function updateUI() {
-    document.getElementById('money').innerText = `¥${state.money.toLocaleString()}`;
+    document.getElementById('money').innerText = `¥${(state.money/10000).toFixed(1)}w`;
     document.getElementById('pressure').innerText = `${Math.floor(state.pressure)}%`;
     document.getElementById('reputation').innerText = Math.floor(state.reputation);
     document.getElementById('students').innerText = `${state.students}/${state.capacity}`;
     document.getElementById('round').innerText = state.round;
-    
-    if(state.pressure > 80) document.getElementById('pressure').style.color = 'red';
-    else document.getElementById('pressure').style.color = 'var(--p-gold)';
+    document.getElementById('buff').innerText = `${Math.floor(state.buff * 100)}%`;
 }
+function showModal() { document.getElementById('modal').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
+function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
 
-function setMode(m) {
-    state.mode = m;
-    document.querySelectorAll('.btn-mode').forEach((b, i) => {
-        b.className = (i+1 === m) ? 'btn-mode active' : 'btn-mode';
-    });
-}
-
-function addLog(msg) {
-    const l = document.getElementById('log');
-    l.innerHTML = `> ${msg}<br>` + l.innerHTML;
-}
-
-function closeModal() {
-    document.getElementById('modal').style.display = 'none';
-    document.getElementById('overlay').style.display = 'none';
-}
-
-function renderResearch() {
-    const row = document.getElementById('research-panel');
-    SKILLS.forEach(s => {
-        row.innerHTML += `
-            <div class="card">
-                <h4>${s.name}</h4>
-                <p style="font-size:10px;">${s.desc}</p>
-                <button onclick="buySkill('${s.id}', ${s.cost})">学习 ¥${s.cost/1000}k</button>
-            </div>
-        `;
-    });
-}
-
-function buySkill(id, cost) {
-    if(state.money >= cost && !state.skills.includes(id)) {
-        state.money -= cost;
-        state.skills.push(id);
-        addLog(`掌握了技能：${id}`);
-        updateUI();
-    }
-}
-
-function renderTours() {
-    const row = document.getElementById('tour-panel');
-    TOURS.forEach(t => {
-        row.innerHTML += `
-            <div class="card">
-                <h4>${t.name}</h4>
-                <p>¥${t.cost/1000}k</p>
-                <button onclick="goTour(${t.cost}, ${t.study}, ${t.rep})">出发</button>
-            </div>
-        `;
-    });
-}
-
-function goTour(c, s, r) {
-    if(state.money >= c) {
-        state.money -= c;
-        state.reputation += r;
-        state.pressure = Math.max(0, state.pressure - 20);
-        addLog(`远征归来！声望提升，压力缓解。`);
-        updateUI();
-    }
-}
-
-function renderLuxury() {
-    const row = document.getElementById('luxury-panel');
-    LUXURY.forEach(l => {
-        row.innerHTML += `
-            <div class="card">
-                <h4>${l.name}</h4>
-                <button onclick="buyLux('${l.name}', ${l.cost})">¥${l.cost/1000}k</button>
-            </div>
-        `;
-    });
-}
-
-function buyLux(n, c) {
-    if(state.money >= c) {
-        state.money -= c;
-        addLog(`校长购买了 ${n}，心情大好！`);
-        updateUI();
-    }
-}
-
-function doPR() {
-    if(state.money >= 50000) {
-        state.money -= 50000;
-        state.reputation += 15;
-        state.pressure = Math.max(0, state.pressure - 5);
-        addLog("媒体公关完成：正面形象提升。");
-        updateUI();
-    }
-}
-
-// 启动
-init();
-
+window.onload = init;
 </script>
 </body>
 </html>

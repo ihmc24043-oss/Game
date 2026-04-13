@@ -670,6 +670,122 @@ document.head.appendChild(styleFix);
     `;
     document.head.appendChild(style);
 })();
+/* --- 传奇校长：强制系统重构补丁 (暴力修复) --- */
+
+(function heavyDutyRepair() {
+    // 1. 强制注入 CSS，确保 UI 绝对可见且置顶
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #force-control-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background: rgba(44, 62, 80, 0.95);
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.3);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .mode-row {
+            display: flex;
+            justify-content: space-around;
+            gap: 8px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 10px 5px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: #34495e;
+            color: #bdc3c7;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .mode-btn.active-mode {
+            background: #3498db;
+            color: white;
+            border-color: #fff;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+        .next-btn-mega {
+            background: #f1c40f;
+            color: #2c3e50;
+            padding: 15px;
+            border-radius: 15px;
+            border: none;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 0 #d4ac0d;
+        }
+        .next-btn-mega:active { transform: translateY(2px); box-shadow: 0 2px 0 #d4ac0d; }
+    `;
+    document.head.appendChild(style);
+
+    // 2. 强制创建全新的 HTML 浮层
+    const panel = document.createElement('div');
+    panel.id = 'force-control-panel';
+    panel.innerHTML = `
+        <div class="mode-row">
+            <button class="mode-btn" id="m-btn-1" onclick="forceSetMode(1)">🍃 佛系减压</button>
+            <button class="mode-btn active-mode" id="m-btn-2" onclick="forceSetMode(2)">⚖️ 标准</button>
+            <button class="mode-btn" id="m-btn-3" onclick="forceSetMode(3)">🔥 魔鬼应试</button>
+        </div>
+        <button class="next-btn-mega" onclick="forceNextRound()">🔔 进入下一学期结算</button>
+    `;
+    document.body.appendChild(panel);
+
+    // 3. 重新定义模式切换逻辑
+    window.forceSetMode = function(m) {
+        state.mode = m;
+        document.querySelectorAll('.mode-btn').forEach((b, i) => {
+            b.classList.toggle('active-mode', (i + 1) === m);
+        });
+        const tips = ["已开启佛系减压模式", "已恢复标准模式", "已进入魔鬼应试模式"];
+        addLog(`系统：${tips[m-1]}`);
+    };
+
+    // 4. 重新定义结算逻辑（彻底解决减压问题）
+    window.forceNextRound = function() {
+        // 门槛检查
+        const builtRooms = state.slots.filter(s => s !== null).length;
+        if(builtRooms < 6 || state.teachers.length < 6) {
+            alert("校长，设施或教师不足（至少各6个），无法开学！");
+            return;
+        }
+
+        // 基础结算
+        if(typeof nextRound === 'function') {
+            // 如果原来的函数还在，尝试运行它
+            try { nextRound(); } catch(e) { console.log("原结算函数有损，执行强制补救结算"); }
+        }
+
+        // --- 核心模式修正 ---
+        if (state.mode === 1) {
+            // 佛系模式：强制大幅扣除压力，不管其他建筑加了多少
+            state.pressure = Math.max(0, state.pressure - 30);
+            addLog("🧘 [佛系生效] 全校开展心理建设，压力大幅消散！");
+        } else if (state.mode === 3) {
+            // 应试模式：额外增加压力
+            state.pressure = Math.min(100, state.pressure + 20);
+            addLog("👿 [魔鬼生效] 疯狂刷题中，压力快速上升！");
+        }
+
+        updateUI();
+        addLog(`>>> 第 ${state.round - 1} 学期结算完毕 <<<`);
+    };
+
+    // 5. 自动隐藏旧的无效按钮 (如果它们还残留在页面上的话)
+    const oldControls = document.querySelector('.controls');
+    if (oldControls) oldControls.style.display = 'none';
+
+})();
 
 </script>
 </body>

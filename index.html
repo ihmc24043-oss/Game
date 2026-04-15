@@ -2,635 +2,219 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite School Tycoon - 模拟经营开发版</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --panel-bg: #1e293b;
-            --accent: #38bdf8;
-            --t1-color: #f8fafc; /* 白色 */
-            --t2-color: #3b82f6; /* 蓝色 */
-            --t3-color: #a855f7; /* 紫色 */
-            --danger: #ef4444;
-            --success: #22c55e;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: white;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            overflow-x: hidden;
-        }
-
-        /* 状态看板 */
-        #dashboard {
-            width: 100%;
-            background: var(--panel-bg);
-            padding: 15px 0;
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 2px solid var(--accent);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        .stat-box { text-align: center; min-width: 100px; }
-        .stat-label { font-size: 12px; color: #94a3b8; display: block; }
-        .stat-value { font-size: 18px; font-weight: bold; color: #fbbf24; }
-
-        /* 游戏主体容器 */
-        #game-container {
-            display: flex;
-            padding: 20px;
-            gap: 20px;
-            max-width: 1400px;
-        }
-
-        /* 24地块棋盘 */
-        #school-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 130px);
-            grid-template-rows: repeat(4, 130px);
-            gap: 12px;
-            background: rgba(255,255,255,0.05);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid #334155;
-        }
-
-        .plot {
-            width: 130px;
-            height: 130px;
-            background: #0f172a;
-            border: 2px dashed #475569;
-            border-radius: 8px;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-
-        .plot:hover { border-color: var(--accent); background: #1e293b; }
-        .plot.selected { border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
-
-        /* 视觉进化样式 */
-        .plot.tier-T1 { border: 2px solid var(--t1-color); color: var(--t1-color); }
-        .plot.tier-T2 { border: 2px solid var(--t2-color); color: var(--t2-color); box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.3); }
-        .plot.tier-T3 { border: 2px solid var(--t3-color); color: var(--t3-color); box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.4); font-weight: bold; }
-
-        .plot-id { position: absolute; top: 5px; left: 5px; font-size: 10px; opacity: 0.5; }
-        .plot-tier { position: absolute; bottom: 5px; right: 5px; font-size: 10px; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px; }
-
-        /* 控制面板 */
-        #side-panel {
-            width: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .control-group {
-            background: var(--panel-bg);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #334155;
-        }
-
-        h3 { margin-top: 0; font-size: 16px; border-left: 4px solid var(--accent); padding-left: 10px; }
-
-        .btn {
-            background: #334155;
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 4px;
-            font-size: 13px;
-            transition: background 0.2s;
-        }
-
-        .btn:hover { background: #475569; }
-        .btn-build { background: #0369a1; }
-        .btn-upgrade { background: #7e22ce; }
-        .btn-action { background: #b45309; }
-        .btn-semester { width: 100%; background: var(--success); font-weight: bold; font-size: 16px; margin-top: 10px; height: 50px; }
-
-        input[type="range"], input[type="number"] { width: 100%; margin: 10px 0; }
-
-        /* 日志窗口 */
-        #event-log {
-            height: 200px;
-            background: #000;
-            color: #10b981;
-            font-family: 'Courier New', monospace;
-            padding: 10px;
-            overflow-y: auto;
-            font-size: 12px;
-            border: 1px solid #334155;
-            border-radius: 8px;
-        }
-
-        /* 教师列表 */
-        .teacher-item {
-            display: flex;
-            justify-content: space-between;
-            background: rgba(0,0,0,0.2);
-            padding: 5px 8px;
-            margin: 4px 0;
-            font-size: 12px;
-            border-radius: 4px;
-        }
-
-        .alert { color: var(--danger); font-weight: bold; }
-    </style>
-</head>
-<body>
-
-<div id="dashboard">
-    <div class="stat-box"><span class="stat-label">经费(w)</span><span id="funds" class="stat-value">50.00</span></div>
-    <div class="stat-box"><span class="stat-label">名望</span><span id="reputation" class="stat-value">50</span></div>
-    <div class="stat-box"><span class="stat-label">压力</span><span id="stress" class="stat-value">0</span>%</div>
-    <div class="stat-box"><span class="stat-label">快乐值</span><span id="happiness" class="stat-value">50</span></div>
-    <div class="stat-box"><span class="stat-label">教职</span><span id="teachers-count" class="stat-value">0</span>/6</div>
-</div>
-
-<div id="game-container">
-    <div id="school-grid">
-        </div>
-
-    <div id="side-panel">
-        <div class="control-group">
-            <h3 id="selected-title">请选择地块</h3>
-            <div id="build-menu">
-                <button class="btn btn-build" onclick="build('Classroom')">普通教室 (10w)</button>
-                <button class="btn btn-build" onclick="build('Lab')">科技实验室 (25w)</button>
-                <button class="btn btn-build" onclick="build('ArtCenter')">艺术中心 (20w)</button>
-                <button class="btn btn-upgrade" onclick="upgradeBuilding()">升级/进化建筑</button>
-            </div>
-        </div>
-
-        <div class="control-group">
-            <h3>师资与薪资</h3>
-            <div id="teacher-list"></div>
-            <button class="btn" onclick="hireTeacher()">招聘老师 (5w)</button>
-            <div style="margin-top:10px; font-size:12px;">
-                <span>薪资调整: </span>
-                <button class="btn" onclick="adjustSalaries(500)">+500</button>
-                <button class="btn" onclick="adjustSalaries(-500)">-500</button>
-            </div>
-        </div>
-
-        <div class="control-group">
-            <h3>策略设定</h3>
-            <label class="stat-label">每生学费 (当前: <span id="tuition-val">5000</span>)</label>
-            <input type="range" id="tuition-slider" min="2000" max="50000" step="1000" value="5000" oninput="updateTuition(this.value)">
-            <button class="btn btn-action" onclick="runExchange()">国际交流团 (30w)</button>
-            <button class="btn btn-action" onclick="improvePR()">媒体公关升级 (20w)</button>
-            <button class="btn btn-action" onclick="buyLuxury()">购买奢侈品 (100w)</button>
-        </div>
-
-        <button class="btn btn-semester" onclick="runSemester()">开启新学期结算</button>
-
-        <div id="event-log">
-            > 系统就绪...<br>
-            > 提示：必须有6间教室和6名老师才能开学。
-        </div>
-    </div>
-</div>
-
-<script>
-    // --- 游戏配置与数据 ---
-    let school = {
-        funds: 50.00,
-        reputation: 50,
-        happiness: 50,
-        baseStress: 0,
-        tuition: 5000,
-        prLevel: 1,
-        selectedIdx: -1,
-        plots: Array(24).fill(null).map((_, i) => ({
-            id: i + 1,
-            type: 'Empty',
-            tier: 'T1',
-            level: 0,
-            capacity: 0
-        })),
-        teachers: [],
-        names: ["张老师", "李老师", "王老师", "赵老师", "钱老师", "孙老师"]
-    };
-
-    const BUILDINGS = {
-        'Classroom': { name: '标准教室', cost: 10, cap: 40, stress: 5 },
-        'Lab': { name: 'AI算力中心', cost: 25, cap: 30, stress: 15 },
-        'ArtCenter': { name: '琴房中心', cost: 20, cap: 25, stress: 8 },
-        'Empty': { name: '荒地', cost: 0, cap: 0, stress: 0 }
-    };
-
-    // --- 初始化 ---
-    function initGrid() {
-        const gridEl = document.getElementById('school-grid');
-        gridEl.innerHTML = '';
-        school.plots.forEach((plot, index) => {
-            const div = document.createElement('div');
-            div.className = `plot tier-${plot.tier} ${school.selectedIdx === index ? 'selected' : ''}`;
-            div.onclick = () => selectPlot(index);
-            
-            div.innerHTML = `
-                <span class="plot-id">#${plot.id}</span>
-                <div style="font-size:14px">${plot.type === 'Empty' ? '待开发' : BUILDINGS[plot.type].name}</div>
-                ${plot.level > 0 ? `<div style="font-size:11px">Lv.${plot.level}</div>` : ''}
-                <span class="plot-tier">${plot.tier}</span>
-            `;
-            gridEl.appendChild(div);
-        });
-        updateDashboard();
-    }
-
-    function selectPlot(index) {
-        school.selectedIdx = index;
-        const plot = school.plots[index];
-        document.getElementById('selected-title').innerText = `地块 #${plot.id} - ${plot.type === 'Empty' ? '空地' : BUILDINGS[plot.type].name}`;
-        initGrid();
-    }
-
-    function updateDashboard() {
-        document.getElementById('funds').innerText = school.funds.toFixed(2);
-        document.getElementById('reputation').innerText = school.reputation;
-        document.getElementById('happiness').innerText = school.happiness;
-        document.getElementById('teachers-count').innerText = school.teachers.length;
-        
-        let totalStress = school.baseStress;
-        school.plots.forEach(p => { if(p.type !== 'Empty') totalStress += BUILDINGS[p.type].stress * p.level; });
-        document.getElementById('stress').innerText = Math.min(100, totalStress);
-
-        // 更新教师列表
-        const tList = document.getElementById('teacher-list');
-        tList.innerHTML = school.teachers.map(t => `
-            <div class="teacher-item">
-                <span>${t.name}</span>
-                <span>士气: ${t.morale} | 薪资: ${t.salary}</span>
-            </div>
-        `).join('');
-    }
-
-    // --- 核心功能 ---
-    function build(type) {
-        if (school.selectedIdx === -1) return addLog("请先选择地块", "yellow");
-        let cost = BUILDINGS[type].cost;
-        if (school.funds < cost) return addLog("资金不足！", "red");
-
-        school.funds -= cost;
-        school.plots[school.selectedIdx] = {
-            ...school.plots[school.selectedIdx],
-            type: type,
-            level: 1,
-            tier: 'T1',
-            capacity: BUILDINGS[type].cap
-        };
-        addLog(`建设了 ${BUILDINGS[type].name}`, "white");
-        initGrid();
-    }
-
-    function upgradeBuilding() {
-        if (school.selectedIdx === -1) return;
-        let plot = school.plots[school.selectedIdx];
-        if (plot.type === 'Empty') return;
-
-        let upgradeCost = plot.level * 15;
-        if (school.funds < upgradeCost) return addLog("升级资金不足！", "red");
-
-        school.funds -= upgradeCost;
-        plot.level++;
-        
-        // 视觉进化逻辑
-        if (plot.level >= 3 && plot.tier === 'T1') plot.tier = 'T2';
-        if (plot.level >= 6 && plot.tier === 'T2') plot.tier = 'T3';
-        
-        plot.capacity = Math.floor(plot.capacity * 1.5);
-        addLog(`地块 #${plot.id} 升级完成，当前 Lv.${plot.level}`, "#a855f7");
-        initGrid();
-    }
-
-    function hireTeacher() {
-        if (school.teachers.length >= 6) return addLog("招聘名额已满！");
-        if (school.funds < 5) return addLog("没钱招人了！");
-        
-        school.funds -= 5;
-        school.teachers.push({
-            name: school.names[school.teachers.length],
-            salary: 5000,
-            morale: 100
-        });
-        updateDashboard();
-        addLog("新老师入职。");
-    }
-
-    function adjustSalaries(amount) {
-        school.teachers.forEach(t => {
-            t.salary = Math.max(2000, t.salary + amount);
-            t.morale = Math.min(100, t.morale + (amount > 0 ? 5 : -10));
-        });
-        updateDashboard();
-        addLog(`全体薪资调整了 ${amount}`);
-    }
-
-    function updateTuition(val) {
-        school.tuition = val;
-        document.getElementById('tuition-val').innerText = val;
-    }
-
-    // --- 模拟经营深度逻辑 ---
-    function runSemester() {
-        // 门槛检查
-        let classroomCount = school.plots.filter(p => p.type !== 'Empty').length;
-        if (classroomCount < 6 || school.teachers.length < 6) {
-            return addLog("！！！无法开学：需6间教室和6位老师！！！", "red");
-        }
-
-        addLog(">>> 新学期结算中...", "#22c55e");
-
-        // 1. 收入与支出
-        let totalStudents = school.plots.reduce((sum, p) => sum + p.capacity, 0);
-        let revenue = (totalStudents * school.tuition) / 10000; // 换算成 w
-        let expense = school.teachers.reduce((sum, t) => sum + t.salary, 0) / 10000;
-        
-        school.funds += (revenue - expense);
-
-        // 2. 学费博弈：高额查处风险
-        // 风险公式：(学费/5000) * (100/名望) * 概率
-        let auditRisk = (school.tuition / 5000) * (100 / (school.reputation + 1)) * 0.1;
-        if (Math.random() < auditRisk) {
-            let fine = revenue * 3; // 三倍罚款
-            school.funds -= fine;
-            school.reputation -= 20;
-            addLog(`【政府查处】学费定价过高，重罚 ${fine.toFixed(2)}w！`, "red");
-        }
-
-        // 3. 负面事件：压力导致的自杀丑闻
-        let currentStress = parseInt(document.getElementById('stress').innerText);
-        if (currentStress > 80 && Math.random() > 0.5) {
-            addLog("【重大危机】由于压力过大，发生学生极端事件！", "red");
-            let silenceFee = 50 / school.prLevel; // 公关等级越高，封口费越低
-            if (school.funds >= silenceFee) {
-                school.funds -= silenceFee;
-                addLog(`支付封口费 ${silenceFee.toFixed(2)}w，勉强压住媒体。`, "yellow");
-            } else {
-                alert("资金不足以支付封口费，媒体曝光，学校被迫倒闭！ GAME OVER");
-                location.reload();
-            }
-        }
-
-        // 4. 教师动态
-        school.teachers.forEach(t => {
-            if (currentStress > 70) t.morale -= 15;
-            if (t.morale < 20) {
-                addLog(`警告：${t.name} 因压力过大辞职了！`, "red");
-                school.teachers = school.teachers.filter(teacher => teacher !== t);
-            }
-        });
-
-        // 5. 失败判定
-        if (school.reputation <= 0 || school.funds < -100) {
-            alert("学校经营失败（名望清零或巨额负债）！ GAME OVER");
-            location.reload();
-        }
-
-        updateDashboard();
-        addLog(`结算完毕：净收益 ${(revenue - expense).toFixed(2)}w`);
-    }
-
-    // --- 扩展功能 ---
-    function runExchange() {
-        if (school.funds < 30) return;
-        school.funds -= 30;
-        school.reputation += 25;
-        addLog("举办国际交流活动，名望大幅提升。");
-        updateDashboard();
-    }
-
-    function improvePR() {
-        if (school.funds < 20) return;
-        school.funds -= 20;
-        school.prLevel++;
-        addLog("公关团队升级：现在降低了负面事故的处理费用。");
-    }
-
-    function buyLuxury() {
-        if (school.funds < 100) return addLog("你现在还不配拥有奢侈品。");
-        school.funds -= 100;
-        school.happiness += 40;
-        addLog("购买了纯金校舍，校长的笑容逐渐放肆。");
-        updateDashboard();
-    }
-
-    function addLog(msg, color) {
-        const log = document.getElementById('event-log');
-        log.innerHTML += `<div style="color:${color || '#10b981'}">> ${msg}</div>`;
-        log.scrollTop = log.scrollHeight;
-    }
-
-    // 启动
-    initGrid();
-</script>
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elite School - Mobile Edition</title>
+    <title>Elite School: Omega Protocol</title>
     <style>
         :root {
-            --bg: #0f172a; --panel: #1e293b; --accent: #38bdf8;
+            --bg: #020617; --panel: #1e293b; --accent: #38bdf8;
             --t1: #f8fafc; --t2: #3b82f6; --t3: #a855f7;
             --danger: #ef4444; --success: #22c55e;
         }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body {
-            font-family: -apple-system, system-ui, sans-serif;
-            background: var(--bg); color: white; margin: 0; 
-            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+            font-family: -apple-system, sans-serif; background: var(--bg); color: white;
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* 顶部看板 - 适配手机多行显示 */
-        #dashboard {
-            background: var(--panel); padding: 10px;
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 5px; border-bottom: 2px solid var(--accent);
+        /* 状态看板 - 2行3列紧凑型 */
+        #header {
+            background: var(--panel); padding: 6px; border-bottom: 2px solid var(--accent);
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; z-index: 10;
         }
-        .stat { text-align: center; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 4px; }
-        .stat-label { font-size: 10px; color: #94a3b8; display: block; }
-        .stat-val { font-size: 14px; font-weight: bold; color: #fbbf24; }
+        .stat { background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-l { font-size: 8px; color: #94a3b8; display: block; margin-bottom: 1px; }
+        .stat-v { font-size: 11px; font-weight: bold; color: #fbbf24; }
 
-        /* 24地块 - 手机端缩小 */
-        #grid-container {
-            flex: 1; overflow-y: auto; padding: 10px;
-            display: flex; justify-content: center; align-items: flex-start;
-        }
-        #school-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); /* 手机端改为4列更顺手 */
-            gap: 8px; width: 100%; max-width: 500px;
-        }
+        /* 24地块棋盘 */
+        #main-area { flex: 1; overflow-y: auto; padding: 10px; display: flex; justify-content: center; }
+        #grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; max-width: 420px; }
         .plot {
-            aspect-ratio: 1/1; background: #1e293b; border: 1px dashed #475569;
-            border-radius: 6px; position: relative; display: flex;
-            flex-direction: column; justify-content: center; align-items: center;
-            font-size: 10px; transition: 0.2s;
+            aspect-ratio: 1/1; background: #0f172a; border: 1px dashed #475569;
+            border-radius: 6px; position: relative; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
         }
-        .plot.selected { border: 2px solid var(--accent); background: #334155; }
-        .plot.tier-T1 { border: 1.5px solid var(--t1); }
-        .plot.tier-T2 { border: 1.5px solid var(--t2); box-shadow: 0 0 8px var(--t2); }
-        .plot.tier-T3 { border: 1.5px solid var(--t3); box-shadow: 0 0 12px var(--t3); font-weight: bold; }
+        .plot.selected { border: 2px solid var(--accent); background: #1e293b; box-shadow: 0 0 10px var(--accent); }
         
-        /* 底部控制区 */
-        #controls {
-            background: var(--panel); padding: 15px;
-            border-top-left-radius: 20px; border-top-right-radius: 20px;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
-        }
-        .scroll-menu { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
-        .btn {
-            flex: 0 0 auto; padding: 10px 15px; border-radius: 8px;
-            border: none; color: white; font-size: 12px; background: #334155;
-        }
-        .btn-main { background: var(--success); width: 100%; font-size: 16px; margin-top: 10px; padding: 15px; font-weight: bold; }
+        /* 三阶视觉进化 */
+        .tier-T1 { border: 1px solid var(--t1); color: var(--t1); }
+        .tier-T2 { border: 1.5px solid var(--t2); color: var(--t2); box-shadow: inset 0 0 8px var(--t2); }
+        .tier-T3 { border: 2px solid var(--t3); color: var(--t3); box-shadow: inset 0 0 12px var(--t3); font-weight: bold; }
+
+        .plot-id { position: absolute; top: 2px; left: 2px; font-size: 7px; opacity: 0.5; color: #fff; }
+        .plot-tag { position: absolute; bottom: 2px; right: 2px; font-size: 7px; background: rgba(0,0,0,0.7); padding: 1px 3px; border-radius: 2px; }
+
+        /* 底部控制中心 */
+        #footer { background: var(--panel); padding: 8px; border-top: 1px solid #334155; }
+        #log { background: #000; color: #10b981; font-size: 10px; padding: 6px; border-radius: 4px; margin-bottom: 8px; height: 32px; display: flex; align-items: center; border: 1px solid #1e293b; }
         
-        #log {
-            height: 60px; background: #000; font-family: monospace;
-            font-size: 10px; color: #10b981; padding: 5px;
-            overflow-y: auto; margin-top: 10px; border-radius: 4px;
-        }
+        .scroll-row { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 8px; scrollbar-width: none; }
+        .scroll-row::-webkit-scrollbar { display: none; }
+        .btn { flex: 0 0 auto; padding: 8px 12px; border-radius: 4px; border: none; color: white; font-size: 10px; background: #334155; font-weight: 500; }
+        
+        .btn-run { width: 100%; background: var(--success); font-weight: bold; font-size: 15px; padding: 12px; border: none; color: white; border-radius: 6px; box-shadow: 0 4px 0 #15803d; }
+        .btn-run:active { transform: translateY(2px); box-shadow: 0 2px 0 #15803d; }
     </style>
 </head>
 <body>
 
-<div id="dashboard">
-    <div class="stat"><span class="stat-label">经费(w)</span><span id="funds" class="stat-val">150</span></div>
-    <div class="stat"><span class="stat-label">名望</span><span id="reputation" class="stat-val">50</span></div>
-    <div class="stat"><span class="stat-label">压力</span><span id="stress" class="stat-val">0</span>%</div>
-    <div class="stat"><span class="stat-label">快乐</span><span id="happy" class="stat-val">50</span></div>
-    <div class="stat"><span class="stat-label">教职</span><span id="t-count" class="stat-val">0/6</span></div>
-    <div class="stat"><span class="stat-label">学费</span><span id="tui-val" class="stat-val">5000</span></div>
+<div id="header">
+    <div class="stat"><span class="stat-l">经费(w)</span><span id="f" class="stat-v">150</span></div>
+    <div class="stat"><span class="stat-l">名望</span><span id="r" class="stat-v">50</span></div>
+    <div class="stat"><span class="stat-l">压力值</span><span id="s" class="stat-v">0%</span></div>
+    <div class="stat"><span class="stat-l">快乐值</span><span id="h" class="stat-v">50</span></div>
+    <div class="stat"><span class="stat-l">教职</span><span id="t" class="stat-v">0/6</span></div>
+    <div class="stat"><span class="stat-l">公关/研发</span><span id="pr_rd" class="stat-v">1 / 1</span></div>
 </div>
 
-<div id="grid-container">
-    <div id="school-grid"></div>
+<div id="main-area">
+    <div id="grid"></div>
 </div>
 
-<div id="controls">
-    <div class="scroll-menu">
-        <button class="btn" style="background:#0369a1" onclick="build('Classroom')">普通教室(5w)</button>
-        <button class="btn" style="background:#0e7490" onclick="build('Lab')">AI中心(15w)</button>
-        <button class="btn" style="background:#7e22ce" onclick="upgrade()">进化/升级</button>
-        <button class="btn" style="background:#b45309" onclick="hire()">招老师(2w)</button>
-        <button class="btn" onclick="changeTuition(1000)">学费+1k</button>
-        <button class="btn" onclick="changeTuition(-1000)">学费-1k</button>
+<div id="footer">
+    <div id="log">> 建设6教室+6名师开启结算。注意：学费越高查处风险越大！</div>
+    
+    <div class="scroll-row">
+        <button class="btn" style="background:#0369a1" onclick="cmd('build','Classroom')">普通教室(5w)</button>
+        <button class="btn" style="background:#0e7490" onclick="cmd('build','Relief')">解压设施(10w)</button>
+        <button class="btn" style="background:#7e22ce" onclick="cmd('upgrade')">进化升级(Lv*15)</button>
+        <button class="btn" style="background:#b45309" onclick="cmd('hire')">招聘名师(2w)</button>
+        <button class="btn" style="background:#6366f1" onclick="cmd('research')">技术研发(50w)</button>
+        <button class="btn" style="background:#1e40af" onclick="cmd('tui', 1000)">学费+1k</button>
+        <button class="btn" style="background:#1e40af" onclick="cmd('tui', -1000)">学费-1k</button>
+        <button class="btn" style="background:#2563eb" onclick="cmd('pr')">媒体公关(20w)</button>
+        <button class="btn" style="background:#059669" onclick="cmd('exc')">联谊哈佛(30w)</button>
+        <button class="btn" style="background:#db2777" onclick="cmd('lux')">买金表(100w)</button>
+        <button class="btn" style="background:#475569" onclick="cmd('salary', 500)">加薪(500)</button>
     </div>
     
-    <button class="btn btn-main" onclick="runSemester()">开启新学期结算</button>
-    
-    <div id="log">> 初始化完毕。需6教室+6老师开启经营。</div>
+    <button class="btn-run" onclick="cmd('run')">开启新学期结算</button>
 </div>
 
 <script>
+    const RELIEF_NAMES = ["音乐室", "体育馆", "手工室", "电竞中心"];
     let game = {
-        funds: 150.0, reputation: 50, happy: 50, tuition: 5000, pr: 1,
-        selected: -1, teachers: 0,
-        plots: Array(24).fill(null).map((_, i) => ({ id: i+1, type: 'Empty', tier: 'T1', lv: 0 }))
+        funds: 150.0, rep: 50, happy: 50, tui: 5000, 
+        sel: -1, teachers: 0, pr: 1, rd: 1, salary: 5000, morale: 100,
+        plots: Array(24).fill(null).map((_, i) => ({ id: i+1, type: '', tier: 'T1', lv: 0, cap: 0 }))
     };
 
-    function render() {
-        const grid = document.getElementById('school-grid');
-        grid.innerHTML = '';
+    function ui() {
+        const g = document.getElementById('grid'); g.innerHTML = '';
         game.plots.forEach((p, i) => {
-            const div = document.createElement('div');
-            div.className = `plot tier-${p.tier} ${game.selected === i ? 'selected' : ''}`;
-            div.onclick = () => { game.selected = i; render(); };
-            div.innerHTML = `<span>#${p.id}</span><b>${p.type==='Empty'?'待建':(p.type==='Classroom'?'教学':'科技')}</b>${p.lv>0?'v'+p.lv:''}`;
-            grid.appendChild(div);
+            const d = document.createElement('div');
+            d.className = `plot ${p.type?'tier-'+p.tier:''} ${game.sel===i?'selected':''}`;
+            d.onclick = () => { game.sel = i; ui(); };
+            let label = p.type==='Classroom'?'教学':(p.type==='Relief'?'解压':'待建');
+            d.innerHTML = `<span class="plot-id">#${p.id}</span>
+                           <b style="font-size:10px">${label}</b>
+                           ${p.lv ? `<span class="plot-tag">${p.tier} v${p.lv}</span>` : ''}`;
+            g.appendChild(d);
         });
-        document.getElementById('funds').innerText = Math.floor(game.funds);
-        document.getElementById('reputation').innerText = game.reputation;
-        document.getElementById('happy').innerText = game.happy;
-        document.getElementById('t-count').innerText = `${game.teachers}/6`;
-        document.getElementById('tui-val').innerText = game.tuition;
+        document.getElementById('f').innerText = Math.floor(game.funds);
+        document.getElementById('r').innerText = game.rep;
+        document.getElementById('h').innerText = game.happy;
+        document.getElementById('t').innerText = `${game.teachers}/6`;
+        document.getElementById('pr_rd').innerText = `${game.pr} / ${game.rd}`;
         
-        let stress = game.plots.filter(p=>p.type!=='Empty').length * 5 + (game.tuition/1000);
-        document.getElementById('stress').innerText = Math.min(100, Math.floor(stress));
+        // 压力逻辑更新
+        let rc = game.plots.filter(p=>p.type==='Classroom').length;
+        let lc = game.plots.filter(p=>p.type==='Relief').length;
+        let s = (rc * 10) - (lc * 15 * game.rd) + (game.tui/700) - (game.morale/10);
+        document.getElementById('s').innerText = Math.max(0, Math.min(100, Math.floor(s))) + '%';
+        
+        document.getElementById('tui').innerText = (game.tui/1000).toFixed(1) + 'k';
     }
 
-    function addLog(m, c) {
-        const l = document.getElementById('log');
-        l.innerHTML = `<div style="color:${c||'#10b981'}">> ${m}</div>` + l.innerHTML;
+    function log(m, c) {
+        const b = document.getElementById('log');
+        b.innerText = `> ${m}`; b.style.color = c || '#10b981';
     }
 
-    function build(t) {
-        if(game.selected < 0) return addLog("选个地块！", "orange");
-        let cost = t === 'Classroom' ? 5 : 15;
-        if(game.funds < cost) return addLog("钱不够！", "red");
-        game.funds -= cost;
-        game.plots[game.selected] = { ...game.plots[game.selected], type: t, lv: 1, tier: 'T1' };
-        addLog(`建设了${t}`); render();
-    }
-
-    function upgrade() {
-        let p = game.plots[game.selected];
-        if(!p || p.type === 'Empty') return;
-        let cost = p.lv * 10;
-        if(game.funds < cost) return addLog("升级费不够！", "red");
-        game.funds -= cost; p.lv++;
-        if(p.lv === 3) p.tier = 'T2';
-        if(p.lv === 6) p.tier = 'T3';
-        addLog(`#${p.id}升级至v${p.lv}`); render();
-    }
-
-    function hire() {
-        if(game.teachers >= 6) return addLog("编制已满");
-        if(game.funds < 2) return addLog("没钱招人");
-        game.funds -= 2; game.teachers++;
-        addLog("老师+1"); render();
-    }
-
-    function changeTuition(v) {
-        game.tuition = Math.max(2000, game.tuition + v);
-        render();
-    }
-
-    function runSemester() {
-        let roomCnt = game.plots.filter(p=>p.type!=='Empty').length;
-        if(roomCnt < 6 || game.teachers < 6) return addLog("需6教室+6老师！", "red");
-
-        addLog(">>> 结算学期...", "#22c55e");
-        let rev = (roomCnt * 40 * game.tuition) / 10000;
-        game.funds += rev;
-
-        // 风险：高学费查处
-        let risk = (game.tuition/5000) * (100/(game.reputation+1)) * 0.15;
-        if(Math.random() < risk) {
-            let fine = rev * 2; game.funds -= fine;
-            addLog(`【处罚】乱收费重罚${Math.floor(fine)}w`, "red");
+    function cmd(type, val) {
+        if(type === 'build') {
+            if(game.sel < 0) return log("请点击格子选择地块", "orange");
+            if(game.plots[game.sel].type) return log("此处已有建筑", "orange");
+            let cost = val==='Classroom' ? 5 : 10;
+            if(game.funds < cost) return log("经费不足！", "red");
+            game.funds -= cost;
+            game.plots[game.sel] = { ...game.plots[game.sel], type: val, lv: 1, tier: 'T1', cap: (val==='Classroom'?40:0) };
+            log(`建设成功！`);
+        } 
+        else if(type === 'upgrade') {
+            let p = game.plots[game.sel];
+            if(!p || !p.type) return log("选择已建地块升级", "orange");
+            if(p.lv >= game.rd * 3) return log("研发等级限制进化！去研发技术", "orange");
+            let cost = p.lv * 15;
+            if(game.funds < cost) return log("经费不足升级", "red");
+            game.funds -= cost; p.lv++; p.cap += 25;
+            if(p.lv === 3) p.tier = 'T2';
+            if(p.lv === 6) p.tier = 'T3';
+            log(`#${p.id} 进化至 ${p.tier} v${p.lv}`);
         }
+        else if(type === 'hire') {
+            if(game.teachers >= 6) return log("编制已满(6人)");
+            if(game.funds < 2) return log("招不起老师了");
+            game.funds -= 2; game.teachers++; log("名师入职，工资5000/学期");
+        }
+        else if(type === 'salary') {
+            game.salary += val; game.morale += (val>0?10:-20);
+            log(`工资调整至 ${game.salary}，士气 ${game.morale}`);
+        }
+        else if(type === 'research') {
+            let cost = game.rd * 50;
+            if(game.funds < cost) return log("研发经费不足", "red");
+            game.funds -= cost; game.rd++; log("技术研发成功，解锁进化上限");
+        }
+        else if(type === 'pr') {
+            if(game.funds < 20) return;
+            game.funds -= 20; game.pr++; log("媒体公关等级提升");
+        }
+        else if(type === 'tui') { game.tui = Math.max(2000, game.tui + val); }
+        else if(type === 'exc') { 
+            if(game.funds < 30) return;
+            game.funds -= 30; game.rep += 40; log("国际交流团圆满成功", "yellow"); 
+        }
+        else if(type === 'lux') { 
+            if(game.funds < 100) return log("你太穷了");
+            game.funds -= 100; game.happy += 60; log("校长购买了限量版金表", "#db2777"); 
+        }
+        else if(type === 'run') {
+            let rc = game.plots.filter(p=>p.type==='Classroom').length;
+            if(rc < 6 || game.teachers < 6) return log("条件不足：需6教室+6名师", "red");
+            
+            // 财务结算
+            let rev = (game.plots.reduce((a,b)=>a+b.cap,0) * game.tui) / 10000;
+            let cost = (game.teachers * game.salary) / 10000;
+            game.funds += (rev - cost);
 
-        if(game.reputation < 5) { alert("名望破产，学校关停！"); location.reload(); }
-        render();
+            // 1. 学费查处博弈 (倍率罚款)
+            let risk = (game.tui/10000) * (100/(game.rep+1)) * 0.2;
+            if(Math.random() < risk) {
+                let fine = rev * 3; game.funds -= fine; game.rep -= 30;
+                log(`【查处】乱收费被罚款 ${Math.floor(fine)}w`, "red");
+            }
+
+            // 2. 负面事故逻辑 (封口费/PR)
+            let stressVal = parseInt(document.getElementById('s').innerText);
+            if(stressVal > 80 && Math.random() > 0.5) {
+                let fee = 100 / game.pr;
+                if(game.funds >= fee) { game.funds -= fee; log(`【事故】支付事故封口费 ${Math.floor(fee)}w`, "orange"); }
+                else { alert("没钱支付封口费，丑闻曝光！学校倒闭。"); location.reload(); }
+            }
+
+            // 3. 教师士气逻辑
+            if(game.morale < 20 && Math.random() > 0.7) {
+                game.teachers--; log("有位老师因工资和压力辞职了！", "red");
+            }
+
+            // 4. 判定失败
+            if(game.rep <= 0 || game.funds < -80) { alert("名望清零或巨额赤字，经营失败！"); location.reload(); }
+            
+            log(`学期结束：收益 ${Math.floor(rev - cost)}w`);
+        }
+        ui();
     }
-
-    render();
+    ui();
 </script>
-</body>
-</html>
-
 </body>
 </html>

@@ -3,218 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Elite School: Omega Protocol</title>
+    <title>Elite Tycoon: Sovereign</title>
     <style>
         :root {
-            --bg: #020617; --panel: #1e293b; --accent: #38bdf8;
-            --t1: #f8fafc; --t2: #3b82f6; --t3: #a855f7;
-            --danger: #ef4444; --success: #22c55e;
+            --bg: #020617; --panel: #111827; --accent: #38bdf8;
+            --t1: #f1f5f9; --t2: #3b82f6; --t3: #a855f7;
+            --danger: #ef4444; --success: #22c55e; --warning: #f59e0b;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body {
-            font-family: -apple-system, sans-serif; background: var(--bg); color: white;
-            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: var(--bg); color: #f8fafc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* 状态看板 - 2行3列紧凑型 */
-        #header {
-            background: var(--panel); padding: 6px; border-bottom: 2px solid var(--accent);
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; z-index: 10;
+        /* 状态中控台 */
+        #dashboard {
+            background: var(--panel); padding: 12px; border-bottom: 2px solid var(--accent);
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; z-index: 100;
         }
-        .stat { background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-l { font-size: 8px; color: #94a3b8; display: block; margin-bottom: 1px; }
-        .stat-v { font-size: 11px; font-weight: bold; color: #fbbf24; }
+        .stat-card { background: rgba(0,0,0,0.4); padding: 4px; border-radius: 4px; border: 1px solid #1e293b; text-align: center; }
+        .label { font-size: 9px; color: #94a3b8; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+        .val { font-size: 12px; font-weight: bold; color: #fbbf24; }
+        .val.risk { color: var(--danger); }
 
-        /* 24地块棋盘 */
-        #main-area { flex: 1; overflow-y: auto; padding: 10px; display: flex; justify-content: center; }
-        #grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; max-width: 420px; }
+        /* 6x4 物理地块矩阵 */
+        #world-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; justify-content: center; background: #020617; }
+        #school-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); /* 严格物理4列布局 */
+            gap: 10px; width: 100%; max-width: 420px;
+        }
         .plot {
-            aspect-ratio: 1/1; background: #0f172a; border: 1px dashed #475569;
-            border-radius: 6px; position: relative; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center;
+            aspect-ratio: 1/1; background: #0f172a; border: 1px solid #334155;
+            border-radius: 10px; position: relative; transition: all 0.25s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .plot.selected { border: 2px solid var(--accent); background: #1e293b; box-shadow: 0 0 10px var(--accent); }
+        .plot.selected { border: 2px solid var(--accent); background: #1e293b; box-shadow: 0 0 15px var(--accent); z-index: 10; transform: scale(1.05); }
         
-        /* 三阶视觉进化 */
-        .tier-T1 { border: 1px solid var(--t1); color: var(--t1); }
-        .tier-T2 { border: 1.5px solid var(--t2); color: var(--t2); box-shadow: inset 0 0 8px var(--t2); }
-        .tier-T3 { border: 2px solid var(--t3); color: var(--t3); box-shadow: inset 0 0 12px var(--t3); font-weight: bold; }
+        /* 阶梯进化系统样式 */
+        .tier-T1 { border: 1.5px solid var(--t1); }
+        .tier-T2 { border: 2px solid var(--t2); box-shadow: inset 0 0 10px var(--t2); color: var(--t2); }
+        .tier-T3 { 
+            border: 2px solid var(--t3); box-shadow: inset 0 0 20px var(--t3); color: var(--t3); 
+            animation: glow 2s infinite alternate; font-weight: 800;
+        }
+        @keyframes glow { from { box-shadow: 0 0 5px var(--t3); } to { box-shadow: 0 0 20px var(--t3); } }
 
-        .plot-id { position: absolute; top: 2px; left: 2px; font-size: 7px; opacity: 0.5; color: #fff; }
-        .plot-tag { position: absolute; bottom: 2px; right: 2px; font-size: 7px; background: rgba(0,0,0,0.7); padding: 1px 3px; border-radius: 2px; }
+        .plot-id { position: absolute; top: 3px; left: 5px; font-size: 8px; color: #475569; }
+        .plot-info { text-align: center; pointer-events: none; }
+        .p-type { font-size: 11px; margin-bottom: 2px; }
+        .p-lv { font-size: 8px; background: #000; padding: 1px 4px; border-radius: 5px; }
 
-        /* 底部控制中心 */
-        #footer { background: var(--panel); padding: 8px; border-top: 1px solid #334155; }
-        #log { background: #000; color: #10b981; font-size: 10px; padding: 6px; border-radius: 4px; margin-bottom: 8px; height: 32px; display: flex; align-items: center; border: 1px solid #1e293b; }
+        /* 交互反馈层 */
+        #footer { background: var(--panel); padding: 15px; border-top: 2px solid #1e293b; }
+        #log-console {
+            background: rgba(0,0,0,0.8); height: 60px; border-radius: 6px; padding: 8px;
+            overflow-y: auto; font-size: 10px; color: #10b981; font-family: monospace;
+            margin-bottom: 12px; border: 1px solid #334155;
+        }
+        .action-row { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
+        .action-row::-webkit-scrollbar { display: none; }
+        .btn {
+            flex: 0 0 auto; padding: 10px 18px; border-radius: 8px; border: none;
+            color: white; font-size: 11px; font-weight: bold; background: #334155;
+            transition: 0.1s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-build { background: #0369a1; }
+        .btn-upgrade { background: #7e22ce; }
+        .btn-special { background: #059669; }
         
-        .scroll-row { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 8px; scrollbar-width: none; }
-        .scroll-row::-webkit-scrollbar { display: none; }
-        .btn { flex: 0 0 auto; padding: 8px 12px; border-radius: 4px; border: none; color: white; font-size: 10px; background: #334155; font-weight: 500; }
-        
-        .btn-run { width: 100%; background: var(--success); font-weight: bold; font-size: 15px; padding: 12px; border: none; color: white; border-radius: 6px; box-shadow: 0 4px 0 #15803d; }
-        .btn-run:active { transform: translateY(2px); box-shadow: 0 2px 0 #15803d; }
+        #run-btn {
+            width: 100%; padding: 16px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white; font-size: 18px; font-weight: 900; letter-spacing: 2px;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+        }
+
+        .quota-status { font-size: 10px; color: #94a3b8; text-align: center; margin-bottom: 8px; }
+        .green { color: var(--success); }
     </style>
 </head>
 <body>
 
-<div id="header">
-    <div class="stat"><span class="stat-l">经费(w)</span><span id="f" class="stat-v">150</span></div>
-    <div class="stat"><span class="stat-l">名望</span><span id="r" class="stat-v">50</span></div>
-    <div class="stat"><span class="stat-l">压力值</span><span id="s" class="stat-v">0%</span></div>
-    <div class="stat"><span class="stat-l">快乐值</span><span id="h" class="stat-v">50</span></div>
-    <div class="stat"><span class="stat-l">教职</span><span id="t" class="stat-v">0/6</span></div>
-    <div class="stat"><span class="stat-l">公关/研发</span><span id="pr_rd" class="stat-v">1 / 1</span></div>
+<div id="dashboard">
+    <div class="stat-card"><span class="label">经费(w)</span><span id="f" class="val">150</span></div>
+    <div class="stat-card"><span class="label">名望</span><span id="r" class="val">50</span></div>
+    <div class="stat-card"><span class="label">全校压力</span><span id="s" class="val">0%</span></div>
+    <div class="stat-card"><span class="label">校长快乐</span><span id="h" class="val">50</span></div>
+    <div class="stat-card"><span class="label">教师编制</span><span id="t" class="val">0/6</span></div>
+    <div class="stat-card"><span class="label">研发/公关</span><span id="rp" class="val">1 / 1</span></div>
+    <div class="stat-card"><span class="label">学费标准</span><span id="tui" class="val">5k</span></div>
+    <div class="stat-card"><span class="label">破产风险</span><span id="risk" class="val">低</span></div>
 </div>
 
-<div id="main-area">
-    <div id="grid"></div>
+<div id="world-container">
+    <div id="school-grid"></div>
 </div>
 
 <div id="footer">
-    <div id="log">> 建设6教室+6名师开启结算。注意：学费越高查处风险越大！</div>
+    <div id="log-console">> 校长您好，核心 6x4 物理地块已准备就绪。请开启您的教育帝国。</div>
+    <div class="quota-status" id="quota">许可状态：[教学楼 0/6] [教职员工 0/6]</div>
     
-    <div class="scroll-row">
-        <button class="btn" style="background:#0369a1" onclick="cmd('build','Classroom')">普通教室(5w)</button>
-        <button class="btn" style="background:#0e7490" onclick="cmd('build','Relief')">解压设施(10w)</button>
-        <button class="btn" style="background:#7e22ce" onclick="cmd('upgrade')">进化升级(Lv*15)</button>
-        <button class="btn" style="background:#b45309" onclick="cmd('hire')">招聘名师(2w)</button>
-        <button class="btn" style="background:#6366f1" onclick="cmd('research')">技术研发(50w)</button>
-        <button class="btn" style="background:#1e40af" onclick="cmd('tui', 1000)">学费+1k</button>
-        <button class="btn" style="background:#1e40af" onclick="cmd('tui', -1000)">学费-1k</button>
-        <button class="btn" style="background:#2563eb" onclick="cmd('pr')">媒体公关(20w)</button>
-        <button class="btn" style="background:#059669" onclick="cmd('exc')">联谊哈佛(30w)</button>
-        <button class="btn" style="background:#db2777" onclick="cmd('lux')">买金表(100w)</button>
-        <button class="btn" style="background:#475569" onclick="cmd('salary', 500)">加薪(500)</button>
+    <div class="action-row">
+        <button class="btn btn-build" onclick="act('build','Class')">普通教室(5w)</button>
+        <button class="btn btn-build" onclick="act('build','Lab')">AI实验室(35w)</button>
+        <button class="btn btn-special" onclick="act('build','Music')">音乐厅(15w)</button>
+        <button class="btn btn-special" onclick="act('build','Gym')">体育中心(15w)</button>
+        <button class="btn btn-special" onclick="act('build','Craft')">手工工坊(15w)</button>
+        <button class="btn btn-upgrade" onclick="act('up')">进化升级(倍增)</button>
+        <button class="btn" style="background:#4f46e5" onclick="act('rd')">深度研发(50w)</button>
+        <button class="btn" style="background:#2563eb" onclick="act('pr')">媒体公关(30w)</button>
+        <button class="btn" style="background:#b45309" onclick="act('hire')">名师猎聘(4w)</button>
+        <button class="btn" style="background:#4b5563" onclick="act('tui', 1000)">提高学费</button>
+        <button class="btn" style="background:#db2777" onclick="act('lux')">买劳力士(100w)</button>
     </div>
     
-    <button class="btn-run" onclick="cmd('run')">开启新学期结算</button>
+    <button id="run-btn" onclick="act('run')">开启新学期结算</button>
 </div>
 
 <script>
-    const RELIEF_NAMES = ["音乐室", "体育馆", "手工室", "电竞中心"];
+    const TXT = { Class:'基础教学', Lab:'AI科研', Music:'音乐中心', Gym:'体育中心', Craft:'手工工坊' };
     let game = {
         funds: 150.0, rep: 50, happy: 50, tui: 5000, 
-        sel: -1, teachers: 0, pr: 1, rd: 1, salary: 5000, morale: 100,
+        sel: -1, teachers: 0, pr: 1, rd: 1,
         plots: Array(24).fill(null).map((_, i) => ({ id: i+1, type: '', tier: 'T1', lv: 0, cap: 0 }))
     };
 
-    function ui() {
-        const g = document.getElementById('grid'); g.innerHTML = '';
+    function update() {
+        const grid = document.getElementById('school-grid');
+        grid.innerHTML = '';
+        let tc = 0; // Teaching count
         game.plots.forEach((p, i) => {
             const d = document.createElement('div');
             d.className = `plot ${p.type?'tier-'+p.tier:''} ${game.sel===i?'selected':''}`;
-            d.onclick = () => { game.sel = i; ui(); };
-            let label = p.type==='Classroom'?'教学':(p.type==='Relief'?'解压':'待建');
+            d.onclick = () => { game.sel = i; update(); };
+            if(['Class','Lab'].includes(p.type)) tc++;
             d.innerHTML = `<span class="plot-id">#${p.id}</span>
-                           <b style="font-size:10px">${label}</b>
-                           ${p.lv ? `<span class="plot-tag">${p.tier} v${p.lv}</span>` : ''}`;
-            g.appendChild(d);
+                           <div class="plot-info">
+                               <div class="p-type">${p.type ? TXT[p.type] : '未开发'}</div>
+                               ${p.lv ? `<span class="p-lv">${p.tier} v${p.lv}</span>` : ''}
+                           </div>`;
+            grid.appendChild(d);
         });
+
+        // 核心数值公式
+        let rc = game.plots.filter(p=>['Music','Gym','Craft'].includes(p.type)).length;
+        let stressVal = (tc * 15) - (rc * 20 * game.rd) + (game.tui / 600);
+        let finalStress = Math.max(0, Math.min(100, Math.floor(stressVal)));
+        
         document.getElementById('f').innerText = Math.floor(game.funds);
         document.getElementById('r').innerText = game.rep;
+        document.getElementById('s').innerText = finalStress + '%';
         document.getElementById('h').innerText = game.happy;
         document.getElementById('t').innerText = `${game.teachers}/6`;
-        document.getElementById('pr_rd').innerText = `${game.pr} / ${game.rd}`;
-        
-        // 压力逻辑更新
-        let rc = game.plots.filter(p=>p.type==='Classroom').length;
-        let lc = game.plots.filter(p=>p.type==='Relief').length;
-        let s = (rc * 10) - (lc * 15 * game.rd) + (game.tui/700) - (game.morale/10);
-        document.getElementById('s').innerText = Math.max(0, Math.min(100, Math.floor(s))) + '%';
-        
+        document.getElementById('rp').innerText = `${game.rd} / ${game.pr}`;
         document.getElementById('tui').innerText = (game.tui/1000).toFixed(1) + 'k';
+        
+        let riskVal = (game.tui > 12000 || finalStress > 80) ? '极高' : (game.tui > 8000 ? '中等' : '低');
+        document.getElementById('risk').innerText = riskRisk = riskVal;
+        document.getElementById('risk').className = 'val ' + (riskVal==='极高'?'risk':'');
+
+        const q = document.getElementById('quota');
+        q.innerHTML = `许可状态：<span class="${tc>=6?'green':''}">[教学楼 ${tc}/6]</span> <span class="${game.teachers>=6?'green':''}">[员工 ${game.teachers}/6]</span>`;
+        
+        return { tc, finalStress };
     }
 
-    function log(m, c) {
-        const b = document.getElementById('log');
-        b.innerText = `> ${m}`; b.style.color = c || '#10b981';
+    function log(msg, color) {
+        const console = document.getElementById('log-console');
+        console.innerHTML = `<div style="color:${color || '#10b981'}">> ${msg}</div>` + console.innerHTML;
     }
 
-    function cmd(type, val) {
+    function act(type, val) {
+        let { tc, finalStress } = update();
+
         if(type === 'build') {
-            if(game.sel < 0) return log("请点击格子选择地块", "orange");
-            if(game.plots[game.sel].type) return log("此处已有建筑", "orange");
-            let cost = val==='Classroom' ? 5 : 10;
-            if(game.funds < cost) return log("经费不足！", "red");
+            if(game.sel < 0) return log("请点击地图选择待开发地块", "orange");
+            if(game.plots[game.sel].type) return log("该地块已被占用", "orange");
+            let cost = val==='Class'?5 : (val==='Lab'?35 : 15);
+            if(game.funds < cost) return log("财务警告：经费不足以支持建设", "red");
+            
             game.funds -= cost;
-            game.plots[game.sel] = { ...game.plots[game.sel], type: val, lv: 1, tier: 'T1', cap: (val==='Classroom'?40:0) };
-            log(`建设成功！`);
+            let cap = val==='Class'?40 : (val==='Lab'?100 : 0);
+            game.plots[game.sel] = { ...game.plots[game.sel], type: val, lv: 1, tier: 'T1', cap: cap };
+            log(`地块#${game.sel+1} ${TXT[val]}建设完成`);
         } 
-        else if(type === 'upgrade') {
+        else if(type === 'up') {
             let p = game.plots[game.sel];
-            if(!p || !p.type) return log("选择已建地块升级", "orange");
-            if(p.lv >= game.rd * 3) return log("研发等级限制进化！去研发技术", "orange");
-            let cost = p.lv * 15;
-            if(game.funds < cost) return log("经费不足升级", "red");
-            game.funds -= cost; p.lv++; p.cap += 25;
-            if(p.lv === 3) p.tier = 'T2';
-            if(p.lv === 6) p.tier = 'T3';
-            log(`#${p.id} 进化至 ${p.tier} v${p.lv}`);
+            if(!p || !p.type) return;
+            if(p.lv >= game.rd * 3) return log("研发瓶颈：提升研发等级(RD)以解锁更高形态", "orange");
+            let cost = p.lv * 25;
+            if(game.funds < cost) return log("经费短缺", "red");
+            game.funds -= cost; p.lv++; p.cap += 40;
+            if(p.lv === 3) p.tier = 'T2'; if(p.lv === 6) p.tier = 'T3';
+            log(`地块#${p.id} 已进化至 ${p.tier} v${p.lv}`);
         }
-        else if(type === 'hire') {
-            if(game.teachers >= 6) return log("编制已满(6人)");
-            if(game.funds < 2) return log("招不起老师了");
-            game.funds -= 2; game.teachers++; log("名师入职，工资5000/学期");
-        }
-        else if(type === 'salary') {
-            game.salary += val; game.morale += (val>0?10:-20);
-            log(`工资调整至 ${game.salary}，士气 ${game.morale}`);
-        }
-        else if(type === 'research') {
-            let cost = game.rd * 50;
-            if(game.funds < cost) return log("研发经费不足", "red");
-            game.funds -= cost; game.rd++; log("技术研发成功，解锁进化上限");
+        else if(type === 'rd') {
+            let c = game.rd * 50; if(game.funds < c) return;
+            game.funds -= c; game.rd++; log(`科研突破：当前研发等级 v${game.rd}`);
         }
         else if(type === 'pr') {
-            if(game.funds < 20) return;
-            game.funds -= 20; game.pr++; log("媒体公关等级提升");
+            if(game.funds < 30) return; game.funds -= 30; game.pr++; log("公关升级：封口费大幅降低");
         }
-        else if(type === 'tui') { game.tui = Math.max(2000, game.tui + val); }
-        else if(type === 'exc') { 
-            if(game.funds < 30) return;
-            game.funds -= 30; game.rep += 40; log("国际交流团圆满成功", "yellow"); 
+        else if(type === 'hire') {
+            if(game.teachers >= 6) return log("名额已满");
+            game.funds -= 4; game.teachers++; log("精英名师已入职");
         }
-        else if(type === 'lux') { 
-            if(game.funds < 100) return log("你太穷了");
-            game.funds -= 100; game.happy += 60; log("校长购买了限量版金表", "#db2777"); 
+        else if(type === 'tui') { game.tui += val; }
+        else if(type === 'lux') {
+            if(game.funds < 100) return; game.funds -= 100; game.happy += 100; log("校长极其快乐，购买了限定奢侈品", "#db2777");
         }
         else if(type === 'run') {
-            let rc = game.plots.filter(p=>p.type==='Classroom').length;
-            if(rc < 6 || game.teachers < 6) return log("条件不足：需6教室+6名师", "red");
+            if(tc < 6 || game.teachers < 6) return log("开学失败：未达到 6间教室+6位老师 的最低经营门槛", "red");
             
-            // 财务结算
-            let rev = (game.plots.reduce((a,b)=>a+b.cap,0) * game.tui) / 10000;
-            let cost = (game.teachers * game.salary) / 10000;
-            game.funds += (rev - cost);
+            // 收入逻辑：Cap * 学费 * 研发加成 * 教师效率
+            let rev = (game.plots.reduce((a,b)=>a+b.cap,0) * game.tui * (1 + game.rd * 0.1)) / 10000;
+            game.funds += rev;
 
-            // 1. 学费查处博弈 (倍率罚款)
-            let risk = (game.tui/10000) * (100/(game.rep+1)) * 0.2;
-            if(Math.random() < risk) {
-                let fine = rev * 3; game.funds -= fine; game.rep -= 30;
-                log(`【查处】乱收费被罚款 ${Math.floor(fine)}w`, "red");
+            // 1. 监管风暴（基于名望与学费）
+            let fRisk = (game.tui / 10000) * (200 / (game.rep + 1));
+            if(Math.random() < fRisk) {
+                let f = rev * 3.5; game.funds -= f; game.rep -= 30;
+                log(`【监管重罚】因过度乱收费被严惩，重罚 ${Math.floor(f)}w`, "red");
+            } 
+            // 2. 学生危机（高压事故）
+            if(finalStress > 80 && Math.random() > 0.4) {
+                let fee = 250 / game.pr;
+                if(game.funds >= fee) { game.funds -= fee; log(`【紧急公关】平息高压导致的学生骚乱，耗资 ${Math.floor(fee)}w`, "orange"); }
+                else { alert("灭顶之灾：学校发生重大事故且无力公关，被永久关停。"); location.reload(); }
             }
-
-            // 2. 负面事故逻辑 (封口费/PR)
-            let stressVal = parseInt(document.getElementById('s').innerText);
-            if(stressVal > 80 && Math.random() > 0.5) {
-                let fee = 100 / game.pr;
-                if(game.funds >= fee) { game.funds -= fee; log(`【事故】支付事故封口费 ${Math.floor(fee)}w`, "orange"); }
-                else { alert("没钱支付封口费，丑闻曝光！学校倒闭。"); location.reload(); }
-            }
-
-            // 3. 教师士气逻辑
-            if(game.morale < 20 && Math.random() > 0.7) {
-                game.teachers--; log("有位老师因工资和压力辞职了！", "red");
-            }
-
-            // 4. 判定失败
-            if(game.rep <= 0 || game.funds < -80) { alert("名望清零或巨额赤字，经营失败！"); location.reload(); }
+            // 3. 结局检查
+            if(game.rep <= 0 || game.funds < -150) { alert("名望破产：您已被教育局撤职。"); location.reload(); }
             
-            log(`学期结束：收益 ${Math.floor(rev - cost)}w`);
+            log(`学期结束：本季总营收 ${Math.floor(rev)}w，校园状态良好。`, "#22c55e");
         }
-        ui();
+        update();
     }
-    ui();
+    update();
 </script>
 </body>
 </html>

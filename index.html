@@ -2,375 +2,387 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sovereign 11.0: Architect Edition</title>
+    <title>Sovereign 12.0: The Leviathan</title>
     <style>
         :root {
-            --bg: #010409; --panel: #0d1117; --acc: #58a6ff;
-            --t1: #8b949e; --t2: #1f6feb; --t3: #ab7df8;
-            --gold: #d29922; --danger: #f85149; --success: #3fb950;
+            --bg: #030712; --pnl: #111827; --acc: #38bdf8;
+            --t1: #94a3b8; --t2: #3b82f6; --t3: #8b5cf6;
+            --gold: #f59e0b; --red: #ef4444; --grn: #10b981;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Fira Code', 'Monaco', monospace; }
-        body { background: var(--bg); color: #c9d1d9; height: 100vh; display: flex; overflow: hidden; font-size: 13px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cascadia Code', 'Fira Code', monospace; }
+        body { background: var(--bg); color: #f3f4f6; height: 100vh; display: flex; overflow: hidden; font-size: 12px; }
 
-        /* 左侧：物理模拟层 */
-        #viewport { flex: 2; display: flex; flex-direction: column; padding: 25px; border-right: 1px solid #30363d; background-image: radial-gradient(#161b22 1px, transparent 1px); background-size: 20px 20px; }
-        #canvas-header { margin-bottom: 20px; border-left: 4px solid var(--acc); padding-left: 15px; }
-        #canvas-header h1 { font-size: 18px; color: var(--acc); letter-spacing: 2px; }
+        /* 左侧物理矩阵视图 */
+        #matrix-sector { flex: 2; padding: 20px; border-right: 2px solid #1f2937; background: linear-gradient(135deg, #030712 0%, #111827 100%); position: relative; }
+        #matrix-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+        #matrix-header h1 { font-size: 22px; color: var(--acc); text-transform: uppercase; letter-spacing: 4px; }
         
-        #school-grid {
+        #grid-container {
             display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(6, 1fr);
-            gap: 12px; height: 100%; position: relative;
+            gap: 15px; height: 88%;
         }
-        .plot {
-            background: rgba(22, 27, 34, 0.8); border: 1px solid #30363d; border-radius: 8px;
+        .cell {
+            background: rgba(31, 41, 55, 0.5); border: 1px solid #374151; border-radius: 12px;
+            position: relative; cursor: pointer; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.25s; position: relative; overflow: hidden;
         }
-        .plot:hover { border-color: var(--acc); box-shadow: 0 0 15px rgba(88, 166, 255, 0.2); }
-        .plot.active { border: 2px solid var(--acc); background: rgba(88, 166, 255, 0.05); transform: translateY(-2px); }
-        
-        .type-label { font-size: 10px; font-weight: 900; color: #fff; text-shadow: 0 0 5px #000; z-index: 2; }
-        .lv-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--acc); transition: width 0.3s; }
-        .coord { position: absolute; top: 5px; right: 5px; font-size: 8px; color: #484f58; }
+        .cell:hover { border-color: var(--acc); background: rgba(56, 189, 248, 0.1); transform: scale(1.02); }
+        .cell.selected { border: 2px solid var(--acc); box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.15); }
 
-        /* 右侧：中控管理层 */
-        #sidebar { flex: 1; display: flex; flex-direction: column; background: var(--panel); min-width: 400px; }
-        #hud {
-            padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-            background: #161b22; border-bottom: 2px solid #30363d;
-        }
-        .hud-item { padding: 10px; border: 1px solid #30363d; border-radius: 6px; }
-        .hud-item label { font-size: 9px; color: #8b949e; display: block; margin-bottom: 5px; }
-        .hud-item b { font-size: 16px; color: var(--gold); }
+        .tier-t1 { border-top: 4px solid var(--t1); }
+        .tier-t2 { border-top: 4px solid var(--t2); box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.2); }
+        .tier-t3 { border-top: 4px solid var(--t3); animation: glow 2s infinite; }
+        @keyframes glow { 0% { box-shadow: 0 0 5px var(--t3); } 50% { box-shadow: 0 0 20px var(--t3); } 100% { box-shadow: 0 0 5px var(--t3); } }
 
-        #terminal {
-            flex: 1; padding: 15px; font-size: 11px; overflow-y: auto; background: #010409;
-            color: #7ee787; line-height: 1.6; border-bottom: 1px solid #30363d;
-        }
-        .log-entry { margin-bottom: 4px; border-left: 2px solid #238636; padding-left: 8px; }
+        .cell-id { position: absolute; top: 6px; left: 8px; font-size: 9px; color: #6b7280; }
+        .cell-name { font-weight: 800; font-size: 11px; text-align: center; color: #fff; margin-bottom: 4px; }
+        .cell-stats { font-size: 8px; color: var(--acc); }
 
-        #actions { padding: 20px; display: flex; flex-direction: column; gap: 12px; background: #0d1117; }
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        .action-btn {
-            background: #21262d; border: 1px solid #363b42; color: #c9d1d9;
-            padding: 10px; border-radius: 6px; font-size: 10px; cursor: pointer;
-            transition: 0.2s; font-weight: bold;
+        /* 右侧指挥塔面板 */
+        #command-tower { flex: 1; display: flex; flex-direction: column; background: var(--pnl); min-width: 420px; box-shadow: -10px 0 30px rgba(0,0,0,0.5); }
+        #status-hub {
+            padding: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+            background: rgba(0,0,0,0.3); border-bottom: 2px solid #1f2937;
         }
-        .action-btn:hover { background: #30363d; border-color: #8b949e; }
-        .action-btn.primary { background: var(--t2); border: none; color: #fff; }
-        .action-btn.special { background: #ab7df8; border: none; color: #fff; }
-        
-        #exec-btn {
-            background: var(--success); color: #fff; border: none; padding: 18px;
-            border-radius: 8px; font-size: 18px; font-weight: 900; letter-spacing: 5px;
-            cursor: pointer; box-shadow: 0 4px 15px rgba(63, 185, 80, 0.3);
+        .hub-stat { padding: 12px; background: #030712; border-radius: 8px; border-left: 4px solid var(--acc); }
+        .hub-stat label { display: block; font-size: 8px; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+        .hub-stat b { font-size: 18px; color: var(--gold); }
+
+        #terminal-log {
+            flex: 1; padding: 15px; font-size: 10px; background: #000; overflow-y: auto;
+            color: #10b981; line-height: 1.8; border-bottom: 1px solid #1f2937;
+        }
+        .log-line { border-bottom: 1px solid #111827; padding: 4px 0; }
+        .log-line.warn { color: var(--gold); }
+        .log-line.err { color: var(--red); }
+
+        #control-deck { padding: 20px; background: #111827; }
+        .action-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+        .act-btn {
+            background: #1f2937; border: 1px solid #374151; color: #e5e7eb;
+            padding: 12px 5px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: 700;
+            transition: 0.2s;
+        }
+        .act-btn:hover { background: #374151; border-color: var(--acc); }
+        .act-btn.primary { background: linear-gradient(to bottom, #2563eb, #1d4ed8); border: none; }
+        .act-btn.rare { background: linear-gradient(to bottom, #7c3aed, #6d28d9); border: none; }
+
+        #mega-run {
+            width: 100%; padding: 20px; background: linear-gradient(135deg, #059669, #047857);
+            border: none; border-radius: 12px; color: #fff; font-size: 20px; font-weight: 900;
+            letter-spacing: 6px; cursor: pointer; box-shadow: 0 10px 20px rgba(5, 150, 105, 0.3);
         }
 
-        /* 毕华季结算大屏 */
-        #overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000;
+        /* 毕华季大型覆盖层 */
+        #grad-screen {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 9999;
             display: none; flex-direction: column; align-items: center; justify-content: center;
         }
-        .report-card {
-            width: 500px; background: #161b22; border: 2px solid var(--acc);
-            padding: 40px; border-radius: 12px; position: relative;
+        #report-vault {
+            width: 600px; background: #111827; border: 3px solid var(--gold);
+            padding: 50px; border-radius: 20px; box-shadow: 0 0 100px rgba(245, 158, 11, 0.2);
         }
-        .report-title { color: var(--gold); font-size: 24px; margin-bottom: 25px; text-align: center; font-weight: 900; }
-        .stat-line { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
+        .vault-h { color: var(--gold); font-size: 30px; margin-bottom: 30px; text-align: center; font-weight: 900; border-bottom: 2px solid var(--gold); padding-bottom: 10px; }
+        .vault-stat { display: flex; justify-content: space-between; margin: 15px 0; font-size: 16px; border-bottom: 1px solid #1f2937; padding-bottom: 8px; }
     </style>
 </head>
 <body>
 
-<div id="viewport">
-    <div id="canvas-header">
-        <h1>SOVEREIGN CORE v11.0</h1>
-        <p style="font-size: 10px; color: #8b949e;">INFRASTRUCTURE VIRTUALIZATION / GRADUATION ENGINE</p>
+<div id="matrix-sector">
+    <div id="matrix-header">
+        <h1>Sovereign Core: The Leviathan</h1>
+        <div style="text-align: right; color: #6b7280;">VERSION 12.4.0 / PHYSICAL DOMAIN</div>
     </div>
-    <div id="school-grid"></div>
+    <div id="grid-container"></div>
 </div>
 
-<div id="sidebar">
-    <div id="hud">
-        <div class="hud-item"><label>财政储备 (FUND)</label><b id="h-funds">0.0</b><small>w</small></div>
-        <div class="hud-item"><label>声望等级 (REP)</label><b id="h-rep">0</b></div>
-        <div class="hud-item"><label>师资架构 (STAFF)</label><b id="h-staff">0/6</b></div>
-        <div class="hud-item"><label>全校压力 (STRS)</label><b id="h-stress">0</b><small>%</small></div>
-        <div class="hud-item"><label>研发指数 (RDX)</label><b id="h-rd">1</b></div>
-        <div class="hud-item"><label>学费基准 (TUI)</label><b id="h-tui">5.0</b><small>k</small></div>
+<div id="command-tower">
+    <div id="status-hub">
+        <div class="hub-stat"><label>Liquid Assets</label><b id="st-funds">0.0</b><small>w</small></div>
+        <div class="hub-stat"><label>Global Reputation</label><b id="st-rep">0</b></div>
+        <div class="hub-stat"><label>Faculty Quota</label><b id="st-staff">0/6</b></div>
+        <div class="hub-stat"><label>Stress Index</label><b id="st-stress">0</b><small>%</small></div>
+        <div class="hub-stat"><label>Research Lv</label><b id="st-rd">1</b></div>
+        <div class="hub-stat"><label>Public Relations</label><b id="st-pr">1</b></div>
+        <div class="hub-stat"><label>Tuition Base</label><b id="st-tui">5.0</b><small>k</small></div>
+        <div class="hub-stat"><label>Owner Happiness</label><b id="st-happy">50</b></div>
     </div>
 
-    <div id="terminal"></div>
+    <div id="terminal-log"></div>
 
-    <div id="actions">
-        <div class="btn-row">
-            <button class="action-btn" onclick="Game.build('Class')">物理教室(8w)</button>
-            <button class="action-btn" onclick="Game.build('Lab')">AI实验室(55w)</button>
-            <button class="action-btn primary" onclick="Game.upgrade()">形态进化</button>
+    <div id="control-deck">
+        <div class="action-row">
+            <button class="act-btn" onclick="Core.execute('build','Class')">建设: 基础教室(10w)</button>
+            <button class="act-btn" onclick="Core.execute('build','Lab')">建设: AI中心(60w)</button>
+            <button class="act-btn primary" onclick="Core.execute('evolve')">形态进化: PHASE++</button>
         </div>
-        <div class="btn-row">
-            <button class="action-btn" onclick="Game.build('Art')">艺术工坊(25w)</button>
-            <button class="action-btn" onclick="Game.build('Gym')">体育中心(25w)</button>
-            <button class="action-btn" onclick="Game.build('Music')">音乐礼堂(25w)</button>
+        <div class="action-row">
+            <button class="act-btn" onclick="Core.execute('build','Gym')">设施: 体育中心(30w)</button>
+            <button class="act-btn" onclick="Core.execute('build','Art')">设施: 艺术工坊(30w)</button>
+            <button class="act-btn" onclick="Core.execute('build','Music')">设施: 维也纳厅(30w)</button>
         </div>
-        <div class="btn-row">
-            <button class="action-btn special" onclick="Game.hire()">猎聘名师(10w)</button>
-            <button class="action-btn" onclick="Game.research()">核心研发(80w)</button>
-            <button class="action-btn" onclick="Game.pr()">媒体洗脑(45w)</button>
+        <div class="action-row">
+            <button class="act-btn rare" onclick="Core.execute('hire')">人才猎聘: 名师抽卡</button>
+            <button class="act-btn" onclick="Core.execute('rd')">深度研发: 系统突破</button>
+            <button class="act-btn" onclick="Core.execute('pr')">媒体公关: 舆论控制</button>
         </div>
-        <div class="btn-row">
-            <button class="action-btn" style="color:var(--danger)" onclick="Game.adjustTui(1000)">疯狂加费</button>
-            <button class="action-btn" onclick="Game.luxury()">买海岛(500w)</button>
-            <button class="action-btn" onclick="Game.exchange()">学术交流(60w)</button>
+        <div class="action-row">
+            <button class="act-btn" style="color:var(--red)" onclick="Core.execute('tui_up')">暴力调价: +1.0k</button>
+            <button class="act-btn" onclick="Core.execute('exchange')">全球学术交流团</button>
+            <button class="act-btn rare" onclick="Core.execute('lux')">购买: 私人海岛</button>
         </div>
-        <button id="exec-btn" onclick="Game.settle()">开启“毕华季”结算</button>
+        <button id="mega-run" onclick="Core.execute('settle')">启动“毕华季”年度清算</button>
     </div>
 </div>
 
-<div id="overlay">
-    <div class="report-card">
-        <div class="report-title">🎓 毕华季·年度发展报告</div>
-        <div id="report-content"></div>
-        <button onclick="Game.closeSettle()" style="width:100%; margin-top:30px; padding:15px; background:var(--gold); border:none; font-weight:bold; cursor:pointer;">接收校友荣誉</button>
+<div id="grad-screen">
+    <div id="report-vault">
+        <div class="vault-h">毕业生去向年度总账单</div>
+        <div id="vault-body"></div>
+        <button onclick="Core.closeSettle()" style="width:100%; margin-top:40px; padding:20px; background:var(--gold); border:none; border-radius:10px; font-weight:900; color:#000; cursor:pointer; font-size:18px;">接收校友荣誉捐赠并开启新学年</button>
     </div>
 </div>
 
 <script>
 /**
- * SOVEREIGN 11.0: THE ARCHITECT ENGINE
- * 核心逻辑：基于类封装的强耦合系统
+ * SOVEREIGN 12.0: THE LEVIATHAN - FULL ENGINE CODE
+ * 核心设计目标：逻辑完全展开，代码行数最大化
  */
 
-class Building {
-    constructor(id, type, config) {
+class Faculty {
+    constructor() {
+        this.id = Math.random().toString(36).substr(2, 5).toUpperCase();
+        this.iq = 70 + Math.random() * 50;
+        this.eq = 60 + Math.random() * 60;
+        this.level = 'GRADE_A';
+    }
+}
+
+class Infrastructure {
+    constructor(id, type) {
         this.id = id;
         this.type = type;
-        this.name = config.name;
         this.lv = 1;
         this.tier = 't1';
-        this.cap = config.cap;
-        this.durability = 100; // 耐久度系统
+        this.durability = 100;
+        this.maint_cost = 2;
+        
+        const config = {
+            Class: { name: '物理基础教室', cap: 100, cost: 10 },
+            Lab: { name: 'AI核心实验基地', cap: 400, cost: 60 },
+            Gym: { name: '综合体育中心', cap: 20, cost: 30 },
+            Art: { name: '皇家艺术工坊', cap: 20, cost: 30 },
+            Music: { name: '维也纳金色礼堂', cap: 20, cost: 30 }
+        };
+        
+        this.name = config[type].name;
+        this.base_cap = config[type].cap;
+        this.build_cost = config[type].cost;
     }
 }
 
-class Teacher {
-    constructor() {
-        this.power = 10 + Math.random() * 20; // 教学力
-        this.charm = 5 + Math.random() * 15;  // 魅力
-    }
-}
-
-const Game = (() => {
-    const ROOM_DEFS = {
-        Class: { name: '标准教室', cap: 80, cost: 8 },
-        Lab: { name: 'AI实验室', cap: 300, cost: 55 },
-        Art: { name: '艺术馆', cap: 20, cost: 25 },
-        Gym: { name: '体育场', cap: 20, cost: 25 },
-        Music: { name: '大剧院', cap: 20, cost: 25 }
-    };
-
+const Core = (() => {
+    // 状态仓库 (State Repository)
     let state = {
-        funds: 200.0, rep: 50, tui: 5000, 
-        rd: 1, pr: 1, teachers: [],
+        funds: 250.0,
+        reputation: 60,
+        tuition: 5000,
+        rd_level: 1,
+        pr_level: 1,
+        happiness: 60,
+        teachers: [],
         plots: Array(24).fill(null),
-        selectedIdx: -1,
-        totalGrads: 0
+        selected_index: -1,
+        total_alumni: 0,
+        years_active: 0
     };
 
+    // UI 指针
     const dom = {
-        grid: document.getElementById('school-grid'),
-        terminal: document.getElementById('terminal'),
-        overlay: document.getElementById('overlay'),
-        report: document.getElementById('report-content')
+        grid: document.getElementById('grid-container'),
+        log: document.getElementById('terminal-log'),
+        grad_overlay: document.getElementById('grad-screen'),
+        grad_body: document.getElementById('vault-body')
     };
 
-    // 核心引擎：复杂的压力与教学质量模型
+    const updateStats = () => {
+        document.getElementById('st-funds').innerText = state.funds.toFixed(1);
+        document.getElementById('st-rep').innerText = state.reputation;
+        document.getElementById('st-staff').innerText = `${state.teachers.length}/6`;
+        document.getElementById('st-rd').innerText = state.rd_level;
+        document.getElementById('st-pr').innerText = state.pr_level;
+        document.getElementById('st-tui').innerText = (state.tuition/1000).toFixed(1);
+        document.getElementById('st-happy').innerText = state.happiness;
+        
+        const metrics = calculateMetrics();
+        document.getElementById('st-stress').innerText = metrics.stress;
+    };
+
     const calculateMetrics = () => {
-        let roomCount = 0;
-        let baseQuality = 0;
-        let reliefFactor = 0;
+        let classroom_capacity = 0;
+        let relief_points = 0;
+        let functional_rooms = 0;
 
         state.plots.forEach(p => {
             if(!p) return;
             if(['Class', 'Lab'].includes(p.type)) {
-                roomCount++;
-                baseQuality += p.cap * (1 + (p.lv * 0.2));
+                classroom_capacity += p.base_cap * (1 + (p.lv * 0.3));
+                functional_rooms++;
             } else {
-                reliefFactor += (30 * state.rd * p.lv);
+                relief_points += (40 * state.rd_level * p.lv);
             }
         });
 
-        // 压力指数 = (规模产生的基本压力) - (减压建筑贡献) + (学费造成的社会愤恨)
-        let stress = (roomCount * 22) - reliefFactor + Math.pow(state.tui / 800, 1.8);
-        stress = Math.max(0, Math.min(100, Math.floor(stress)));
+        // 复杂的社会压力算法
+        let stress_base = (functional_rooms * 25) - relief_points + Math.pow(state.tuition / 750, 2);
+        let final_stress = Math.max(0, Math.min(100, Math.floor(stress_base)));
 
-        // 教学效能 = (教师总战力) * (1 - 压力衰减)
-        let teacherPower = state.teachers.reduce((sum, t) => sum + t.power, 0);
-        let efficiency = (teacherPower / 100) * (1 + state.rd * 0.1);
+        // 教学质量算法
+        let teacher_power = state.teachers.reduce((a, b) => a + (b.iq + b.eq), 0);
+        let quality_coeff = (teacher_power / 1000) * (1 + state.rd_level * 0.15) * (1 - final_stress/200);
 
-        return { roomCount, stress, baseQuality, efficiency };
+        return { classroom_capacity, stress: final_stress, quality_coeff };
     };
 
-    const log = (msg, type = 'normal') => {
-        const div = document.createElement('div');
-        div.className = 'log-entry';
-        div.style.color = type === 'err' ? 'var(--danger)' : '#7ee787';
-        div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        dom.terminal.prepend(div);
+    const print = (msg, level = 'normal') => {
+        const line = document.createElement('div');
+        line.className = `log-line ${level}`;
+        line.innerText = `[SECURE_NODE_${new Date().getTime().toString().substr(-4)}] >> ${msg}`;
+        dom.log.prepend(line);
     };
 
-    const render = () => {
+    const renderGrid = () => {
         dom.grid.innerHTML = '';
         state.plots.forEach((p, i) => {
-            const div = document.createElement('div');
-            div.className = `plot ${p ? 'tier-' + p.tier : ''} ${state.selectedIdx === i ? 'active' : ''}`;
-            div.onclick = () => { state.selectedIdx = i; render(); };
-            div.innerHTML = `<span class="coord">${i+1}</span>`;
+            const el = document.createElement('div');
+            el.className = `cell ${p ? 'tier-' + p.tier : ''} ${state.selected_index === i ? 'selected' : ''}`;
+            el.onclick = () => { state.selected_index = i; renderGrid(); };
+            el.innerHTML = `<span class="cell-id">#${String(i+1).padStart(2,'0')}</span>`;
             
             if(p) {
-                div.innerHTML += `
-                    <span class="type-label">${p.name}</span>
-                    <span style="font-size:8px; color:#8b949e">LV.${p.lv}</span>
-                    <div class="lv-bar" style="width: ${(p.lv/10)*100}%"></div>
+                el.innerHTML += `
+                    <div class="cell-name">${p.name}</div>
+                    <div class="cell-stats">LV.${p.lv} / CAP.${Math.floor(p.base_cap * (1+(p.lv*0.3)))}</div>
                 `;
             }
-            dom.grid.appendChild(div);
+            dom.grid.appendChild(el);
         });
-
-        const m = calculateMetrics();
-        document.getElementById('h-funds').innerText = state.funds.toFixed(1);
-        document.getElementById('h-rep').innerText = state.rep;
-        document.getElementById('h-staff').innerText = `${state.teachers.length}/6`;
-        document.getElementById('h-stress').innerText = m.stress;
-        document.getElementById('h-rd').innerText = state.rd;
-        document.getElementById('h-tui').innerText = (state.tui/1000).toFixed(1);
     };
 
     return {
-        build(type) {
-            if(state.selectedIdx < 0) return log("错误：未锁定地块扇区", "err");
-            if(state.plots[state.selectedIdx]) return log("警告：该区域已有结构物", "err");
-            const conf = ROOM_DEFS[type];
-            if(state.funds < conf.cost) return log("经费赤字：无法购买建筑材料", "err");
+        execute(cmd, val) {
+            const metrics = calculateMetrics();
 
-            state.funds -= conf.cost;
-            state.plots[state.selectedIdx] = new Building(state.selectedIdx, type, conf);
-            log(`指令下达：${conf.name} 建设工程启动`);
-            render();
-        },
-
-        upgrade() {
-            let p = state.plots[state.selectedIdx];
-            if(!p) return;
-            // 研发等级锁逻辑
-            if(p.lv >= state.rd * 3) return log(`研发受限：当前 RDX 等级不支持进一步进化`, "err");
-            let cost = p.lv * 30;
-            if(state.funds < cost) return;
-
-            state.funds -= cost;
-            p.lv++;
-            p.cap += 120;
-            if(p.lv === 4) p.tier = 't2';
-            if(p.lv === 7) p.tier = 't3';
-            log(`${p.name} 模块完成版本更新至 v${p.lv}`);
-            render();
-        },
-
-        hire() {
-            if(state.teachers.length >= 6) return log("编制已满：精英配额仅 6 席", "err");
-            if(state.funds < 10) return;
-            state.funds -= 10;
-            state.teachers.push(new Teacher());
-            log("人才引进：一名顶级名师已入职核心教研组");
-            render();
-        },
-
-        research() {
-            let cost = state.rd * 80;
-            if(state.funds < cost) return;
-            state.funds -= cost;
-            state.rd++;
-            log(`实验室大突破：研发指数升至 Lv.${state.rd}`);
-            render();
-        },
-
-        pr() {
-            if(state.funds < 45) return;
-            state.funds -= 45; state.pr++;
-            log("媒体公关：公关团队成功控制了社会舆论");
-            render();
-        },
-
-        adjustTui(val) {
-            state.tui += val;
-            log(`强制令：全校学费上浮至 ${(state.tui/1000).toFixed(1)}k`, "err");
-            render();
-        },
-
-        luxury() {
-            if(state.funds < 500) return log("经费不足：买不起私人海岛", "err");
-            state.funds -= 500;
-            state.rep += 200;
-            log("史诗成就：你购买了太平洋海岛作为私人领地！", "normal");
-            render();
-        },
-
-        exchange() {
-            if(state.funds < 60) return;
-            state.funds -= 60; state.rep += 100;
-            log("学术外交：与世界名校签署了合作协议");
-            render();
-        },
-
-        settle() {
-            const m = calculateMetrics();
-            if(m.roomCount < 6 || state.teachers.length < 6) {
-                return log("结算被拦截：基础设施(6间)与精英编制(6位)未对齐！", "err");
+            if(cmd === 'build') {
+                if(state.selected_index < 0) return print("物理寻址错误: 未选定地块坐标", "err");
+                if(state.plots[state.selected_index]) return print("资源冲突: 选定物理空间已被占用", "err");
+                
+                const temp = new Infrastructure(state.selected_index, val);
+                if(state.funds < temp.build_cost) return print("资金链断裂: 无法支付建设工程款", "err");
+                
+                state.funds -= temp.build_cost;
+                state.plots[state.selected_index] = temp;
+                print(`基建指令已下达: ${temp.name} 建设中...`);
             }
-
-            // 毕华季复杂计算逻辑
-            let finalScore = Math.floor(m.baseQuality * m.efficiency * (1 - m.stress/100));
-            let revenue = (m.baseQuality * state.tui * (1 + state.rd * 0.25)) / 10000;
-            state.funds += revenue;
-
-            let ivy = Math.floor(finalScore / 15);
-            let tech = Math.floor(finalScore / 6);
-            let drop = m.stress > 80 ? Math.floor(m.stress / 2) : 0;
-
-            state.totalGrads += (ivy + tech);
-            state.rep += Math.floor(ivy * 2.5);
-
-            dom.report.innerHTML = `
-                <div class="stat-line"><span>年度总营收：</span><b style="color:var(--success)">+${Math.floor(revenue)}w</b></div>
-                <div class="stat-line"><span>常青藤/清北录取：</span><b style="color:var(--acc)">${ivy} 人</b></div>
-                <div class="stat-line"><span>全球500强签约：</span><b style="color:var(--success)">${tech} 人</b></div>
-                <div class="stat-line"><span>压力崩溃人数：</span><b style="color:var(--danger)">${drop} 人</b></div>
-                <div class="stat-line"><span>累计杰出校友：</span><b style="color:var(--gold)">${state.totalGrads} 人</b></div>
-            `;
-            dom.overlay.style.display = 'flex';
-
-            // 风险审计逻辑
-            let auditRisk = (Math.pow(state.tui / 9000, 2)) / (state.pr * 1.2);
-            if(Math.random() < auditRisk) {
-                let fine = revenue * 5;
-                state.funds -= fine;
-                state.rep -= 100;
-                log(`【重大危机】因过度涨价，校产被监管机构查封，重罚 ${Math.floor(fine)}w`, "err");
+            else if(cmd === 'evolve') {
+                const p = state.plots[state.selected_index];
+                if(!p) return print("寻址错误: 空白地块无法进化", "err");
+                if(p.lv >= state.rd_level * 3) return print("技术壁垒: 需提升系统 RD 等级解锁下一形态", "warn");
+                
+                let cost = p.lv * 45;
+                if(state.funds < cost) return print("经费不足", "err");
+                
+                state.funds -= cost;
+                p.lv++;
+                if(p.lv === 4) p.tier = 't2';
+                if(p.lv === 8) p.tier = 't3';
+                print(`地块 #${p.id+1} 成功进化至形态 ${p.tier.toUpperCase()} (Phase.${p.lv})`);
             }
-
-            if(state.rep <= 0 || state.funds < -800) {
-                alert("帝国破产：你的教育主权已丧失。");
-                location.reload();
+            else if(cmd === 'hire') {
+                if(state.teachers.length >= 6) return print("编制饱和: 校董会限制精英名额为 6 席", "warn");
+                if(state.funds < 12) return;
+                state.funds -= 12;
+                state.teachers.push(new Faculty());
+                print("人才招募成功: 一位具有 GRADE_A 资质的名师已入职中心教研室");
             }
-            render();
+            else if(cmd === 'rd') {
+                let cost = state.rd_level * 80;
+                if(state.funds < cost) return;
+                state.funds -= cost;
+                state.rd_level++;
+                print(`核心系统架构已重构: 当前 R&D 级别升至 v${state.rd_level}`, "normal");
+            }
+            else if(cmd === 'pr') {
+                if(state.funds < 45) return;
+                state.funds -= 45; state.pr_level++;
+                print("媒体关系网络已扩张: 风险对冲能力提升");
+            }
+            else if(cmd === 'tui_up') {
+                state.tuition += 1000;
+                print(`暴力指令: 全校基准学费上浮至 ${(state.tuition/1000).toFixed(1)}k`, "warn");
+            }
+            else if(cmd === 'exchange') {
+                if(state.funds < 60) return;
+                state.funds -= 60; state.reputation += 120;
+                print("全球化战略: 国际名校交流团访问圆满结束，声望大幅溢出");
+            }
+            else if(cmd === 'lux') {
+                if(state.funds < 500) return print("资产不足: 无法购置私人领海岛屿", "err");
+                state.funds -= 500; state.happiness += 500; state.reputation += 100;
+                print("绝对权力: 你购买了南太平洋私人海岛，校长幸福感爆表！");
+            }
+            else if(cmd === 'settle') {
+                let functional_count = state.plots.filter(p => p && ['Class','Lab'].includes(p.type)).length;
+                if(functional_count < 6 || state.teachers.length < 6) {
+                    return print("核心逻辑拦截: 必须拥有 6 间以上教室及 6 位名师方可开启结算！", "err");
+                }
+
+                // 终极结算逻辑
+                let score = Math.floor(metrics.classroom_capacity * metrics.quality_coeff * (1 - metrics.stress/100));
+                let rev = (metrics.classroom_capacity * state.tuition * (1 + state.rd_level * 0.3)) / 10000;
+                state.funds += rev;
+                
+                let ivy = Math.floor(score / 20);
+                let unicorn = Math.floor(score / 8);
+                let burnout = metrics.stress > 80 ? Math.floor(metrics.stress / 1.5) : 0;
+                
+                state.total_alumni += (ivy + unicorn);
+                state.reputation += Math.floor(ivy * 3);
+                state.years_active++;
+
+                dom.grad_body.innerHTML = `
+                    <div class="vault-stat"><span>本学年财政总营收：</span><b style="color:var(--grn)">+${Math.floor(rev)}w</b></div>
+                    <div class="vault-stat"><span>常青藤/清北精英录取：</span><b style="color:var(--acc)">${ivy} 人</b></div>
+                    <div class="vault-stat"><span>独角兽企业/大厂签约：</span><b style="color:var(--grn)">${unicorn} 人</b></div>
+                    <div class="vault-stat"><span>因高度压榨精神崩溃：</span><b style="color:var(--red)">${burnout} 人</b></div>
+                    <div class="vault-stat"><span>全球校友会总人数：</span><b style="color:var(--gold)">${state.total_alumni} 人</b></div>
+                    <div class="vault-stat"><span>教育帝国存续时长：</span><b>第 ${state.years_active} 年</b></div>
+                `;
+                dom.grad_overlay.style.display = 'flex';
+
+                // 监管博弈逻辑
+                let audit_risk = (Math.pow(state.tuition / 8500, 2.8)) / (state.pr_level * 1.5);
+                if(Math.random() < audit_risk) {
+                    let fine = rev * 7;
+                    state.funds -= fine; state.reputation -= 150;
+                    print(`【毁灭级丑闻】因乱收费被中央监察组入驻调查，罚没所得并处罚金 ${Math.floor(fine)}w`, "err");
+                }
+
+                if(state.reputation <= 0 || state.funds < -1000) {
+                    alert("主权崩塌：你已被教育部门终身禁入，学校资产清算完毕。");
+                    location.reload();
+                }
+            }
+            updateStats();
+            renderGrid();
         },
-
-        closeSettle() { dom.overlay.style.display = 'none'; log("新学年开启，主权核心重新初始化..."); },
-        init() { render(); log("Sovereign Core 11.0 系统自检完成。"); }
+        closeSettle() { dom.grad_overlay.style.display = 'none'; print("新年度周期开启，所有系统状态已同步完成。"); },
+        init() { renderGrid(); updateStats(); print("SOVEREIGN CORE 12.0 启动成功，所有物理扇区已挂载。"); }
     };
 })();
 
-Game.init();
+// 初始化引擎
+Core.init();
 </script>
 </body>
 </html>
